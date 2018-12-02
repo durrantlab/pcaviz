@@ -1,0 +1,194 @@
+
+
+    /**
+     * The function to add PDB txt to the PV Viewer.
+     * @param  {string} pdbTxt The PDB text.
+     * @returns void
+     */
+    private _GLMOL_AddPDBTxt(pdbTxt: string): void {
+        // this._model = this._parent._params["viewer"]["library"]["io"]["pdb"](pdbTxt);
+        // viewer
+
+        // GLmol takes txt from a hidden textarea. Wish there was a better
+        // way...
+        let id = this._parent._params["viewer"]["id"];
+        let txtArea = jQuery("#" + id + "_src");
+        if (txtArea.length === 0) {
+            // Need to add the text area.
+            jQuery("body").append('<textarea id="' + id + '_src" style="display: none;">' + pdbTxt + '</textarea>')
+            txtArea = jQuery("#" + id + "_src");
+        }
+
+        // window.v = this._parent._params["viewer"];
+        txtArea.val(pdbTxt);
+
+        // this._parent._params["viewer"].defineRepresentation = function() {
+        //     var all = this.getAllAtoms();
+        //     var hetatm = this.removeSolvents(this.getHetatms(all));
+        //     this.colorByAtom(all, {});
+        //     this.colorByChain(all);
+        //     var asu = new THREE.Object3D();
+
+        //     this.drawBondsAsStick(asu, hetatm, this.cylinderRadius, this.cylinderRadius);
+        //     this.drawBondsAsStick(asu, this.getResiduesById(this.getSidechains(this.getChain(all, ['A'])), [58, 87]), this.cylinderRadius, this.cylinderRadius);
+        //     this.drawBondsAsStick(asu, this.getResiduesById(this.getSidechains(this.getChain(all, ['B'])), [63, 92]), this.cylinderRadius, this.cylinderRadius);
+        //     this.drawCartoon(asu, all, this.curveWidth, this.thickness);
+
+        //     this.drawSymmetryMates2(this.modelGroup, asu, this.protein.biomtMatrices);
+        //     this.modelGroup.add(asu);
+        // };
+
+        this._parent._params["viewer"].loadMolecule();
+    }
+
+    /**
+     * Updates the atom positions in a PV Viewer.
+     * @param  {number} frame The frame number.
+     * @returns void
+     */
+    private _GLMOL_UpdateAtomPos(frame: number) {
+        return;
+        let newAtomCoors = this._parent.getFrameCoors(frame);
+
+        let atomIdx = 0;
+        this._model["eachAtom"]((atom, idx) => {
+            let coors = newAtomCoors[atomIdx];
+            atom["_bV"] = coors;
+            atomIdx++;
+        });
+    }
+
+    /**
+     * Renders the PV Viewer.
+     * @returns void
+     */
+    private _GLMOL_Render() {
+        // this._parent._params["viewer"]["viewer"].clear();
+
+        // A callback function in the case of PV.
+        // this._parent._params["visStyle"](this._model);
+    }
+
+
+
+
+
+    /**
+     * The function to add PDB txt to the JSMol viewer. BROKEN!
+     * @param  {string} pdbTxt The PDB text.
+     * @returns void
+     */
+    private _JSMOL_AddPDBTxt(pdbTxt: string) {
+        // let jsmolCmd = "data \"model browser_sim\"\n";
+        // jsmolCmd += pdbTxt + "\n";
+        // jsmolCmd += 'end "model browser_sim";show data "pdb"';
+
+        // See
+        // https://jmol-developers.narkive.com/UJZfiMkC/ie-specific-problem-with-jmolloadinline
+        // for example.
+
+        let test = `2
+testing
+C 1 1 1
+O 2 2 2
+`;
+
+        // jQuery("body").append("<div id='test'>" + test + "</div>");
+        setTimeout(() => {
+            // window["t"] = test.split("\n");
+            // let jsmolCmd = "jmolLoadInline('" + pdbTxt.replace(/\n/g, "\\n") + "');";
+
+            let jsmolCmd = `load data "model example"
+ATOM     30  X   XXX X 852       1.020  -0.246  -0.345  1.00  0.00           X
+ATOM     31  X   XXX X 852      -1.570   0.836  -0.115  1.00  0.00           X
+ATOM     32  X   XXX X 852       0.000  -0.738   0.207  1.00  0.00           X
+ATOM     33  X   XXX X 852       0.785  -0.344   0.069  1.00  0.00           X
+ATOM     34  X   XXX X 852      -1.727  -0.246   0.253  1.00  0.00           X
+ATOM     35  X   XXX X 852      -0.157  -0.197   0.000  1.00  0.00           X
+ATOM     36  X   XXX X 852       0.549   0.984  -0.391  1.00  0.00           X
+ATOM     37  X   XXX X 852       0.471   0.295   0.138  1.00  0.00           X
+end "model example";`
+            console.log(jsmolCmd);
+            // jsmolCmd = "background red";
+            this._parent._params["viewer"]["library"].script(
+                this._parent._params["viewer"]["applet"],
+                jsmolCmd
+            );
+        }, 1000);
+
+        // this._model = this._parent._params["viewer"].addModel( pdbTxt, "pdb" );
+        // this._render();
+
+        // viewerJSMol = {
+        //     applet: jsmolApplet,
+        //     library: Jmol
+        // }
+
+    }
+
+    /**
+     * Updates the atom positions in a JSMol viewer. NOT IMPLEMENTED.
+     * @param  {number} frame The frame number.
+     * @returns void
+     */
+    private _JSMOL_UpdateAtomPos(frame: number) {}
+
+    /**
+     * Renders the JSMol viewer. NOT IMPLEMENTED.
+     * @returns void
+     */
+    private _JSMOL_Render() {}
+
+
+            case "JSMOL":
+                this["addPDBTxt"] = this._JSMOL_AddPDBTxt;
+                this._updateAtomPosFun = this._JSMOL_UpdateAtomPos;
+                this._render = this._JSMOL_Render;
+                break;
+
+
+            case "GLMOL":
+                this["addPDBTxt"] = this._GLMOL_AddPDBTxt;
+                this._updateAtomPosFun = this._GLMOL_UpdateAtomPos;
+                this._render = this._GLMOL_Render;
+                break;
+
+                case "GLMOL":
+                    this._params["visStyle"] = (structure) => { this._params["viewer"]["viewer"]["spheres"]('all', structure); };
+                    break;
+                case "JSMOL":
+                    this._params["visStyle"] = undefined;
+                    break;
+
+    Page("GLmol", "glmol.html", [
+            "var viewer = new GLmol('viscontainer', true);"
+        ], [
+            '<script src="http://webglmol.osdn.jp/glmol/js/Three49custom.js"></script>'
+            '<script src="http://webglmol.osdn.jp/glmol/js/GLmol.js"></script>'
+        ],
+        "GLMOL",
+        "(structure) => { pvViewer.spheres('all', structure); },  // Callback to set visStyle."
+    ),
+
+
+# viewer.defineRepresentation = function() { var all = this.getAllAtoms(); this.colorByAtom(all, {}); };
+
+
+    Page("JSMol", "jsmol.html", [
+            "var Info = {width: 300, height: 300, use: 'HTML5', j2sPath: 'jsmol/j2s'};",
+            "jsmolApplet = Jmol.getApplet('viscontainer', Info);",
+            "Jmol.script(jsmolApplet, 'background white');",
+            "// JSMol is less encapsulated, so put both in an object.",
+            "let viewer = {viewer: jsmolApplet, library: Jmol};"
+        ], [
+            '<script type="text/javascript" src="jsmol/js/JSmolCore.js"></script>',
+            '<script type="text/javascript" src="jsmol/js/JSmolApplet.js"></script>',
+            '<script type="text/javascript" src="jsmol/js/JSmolApi.js"></script>',
+            '<script type="text/javascript" src="jsmol/js/j2sjmol.js"></script>',
+            '<script type="text/javascript" src="jsmol/js/JSmol.full.nojq.js"></script>',
+            '<script type="text/javascript" src="jsmol/js/JSmolThree.js"></script>',
+            '<script type="text/javascript" src="jsmol/js/JSmolGLmol.js"></script>'
+        ],
+        "JSMOL",
+        "undefined,  // No visStyle needed for JSMol"
+    )
