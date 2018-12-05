@@ -24,8 +24,10 @@ def get_PCA_trajectory(traj, selection, cum_var):
     # Only select atoms of interest.
     atomgroup = traj.select_atoms(selection)
 
-    # Project atomic coordinates onto principal components.
+    # Get average atomic coordinates.
     coords_atoms = atomgroup.positions
+
+    # And project onto the principal components.
     coords_project_onto_pca_space = get_trajectory_pca.transform(atomgroup,n_components=n_pcs)
     
     # Return only the information necessary for compression and expansion
@@ -34,7 +36,7 @@ def get_PCA_trajectory(traj, selection, cum_var):
 # Main function.
 if __name__ == '__main__':
     # Get user provided parameters and unpack frequently used parameters
-    params = get_params('PCA')
+    params = get_params()
 
     coor_file = params['coor_file']
     top_file = params['top_file']
@@ -67,7 +69,7 @@ if __name__ == '__main__':
     my_dict = {}
     my_dict['vecs'] = _Utils.compress_list(vect_components, num_decimals)
     my_dict['coeffs'] = _Utils.compress_list(PCA_coeff, num_decimals)
-    my_dict['coors'] = _Utils.compress_list(coords_atoms, num_decimals)
+    my_dict['coors'] = _Utils.compress_list(coords_atoms, num_decimals, is_coor=True)
     my_dict['params'] = params
 
     # Write final json file.

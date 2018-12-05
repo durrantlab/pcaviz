@@ -43,7 +43,7 @@ def get_params():
         parser.add_argument('--output_dir', metavar='od', type=str, nargs="?",
                             default=None,
                             help=('The directory to store output files ',
-                                  '(coordinate file's directory by default).'))
+                                  '(coordinate file directory by default).'))
         parser.add_argument('--dont_randomize_output', action="store_true",
                             help=('Enable file-output overwrite. If present, ',
                                   'do not include a random string ',

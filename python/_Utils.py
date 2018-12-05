@@ -116,12 +116,40 @@ def load_traj(top_file, coor_file=None, align=True,
     return traj
 
 
-def compress_list(to_round, num_decimals):
+def align_trajectory(traj, sel_str="name CA", pdb_filename=None):
+    # This function aligns a trajectory to its first frame.
+
+    # If we are given a pdb to align to, load it as a universe
+    # and align to it.
+    if pdb_filename is not None:
+        ref = MDAnalysis.Universe(pdb_filename)
+        sel_ref = ref.select_atoms(sel_str)
+        alignment = align.AlignTraj(traj, ref, in_memory=True, select=sel_str)
+    else:
+        # Get the reference (first frame).
+        traj.trajectory[0]
+        
+        # Align the trajectory to current frame of trajectory
+        # (in this case the first). Note that this is in memory.
+        # Could run into problems with big trajectories...
+        alignment = align.AlignTraj(traj, traj, in_memory=True, select=sel_str)
+        alignment.run()
+
+    # Aligned trajectory is in traj.
+    return traj
+
+
+def compress_list(to_round, num_decimals, is_coor=False):
     # This function compresses a list by rounding its elements and
     # losslessly converting them to integers
     rounded_list = np.around(to_round, decimals=num_decimals)
     multiplication_factor = 10 ** num_decimals
-    compressed_list = [x * multiplication_factor for x in rounded_list]
+    rounded_list *= multiplication_factor
+    compressed_list = np.array(rounded_list, dtype=np.int32)
+    if is_coor:
+        compressed_list = compressed_list.flatten().tolist()
+    else:
+        compressed_list = compressed_list.tolist()
     return compressed_list
 
 # Prunes trajectory to a given number of frames.
@@ -135,7 +163,7 @@ def stride_and_trim_traj(traj, stride, start_frame, ps_timestep):
     num_frames = len(traj.trajectory)
 
     # Prune and trim as necessary. This also transfers the trajectory into memory.
-        traj.transfer_to_memory(start, num_frames, stride)
+    traj.transfer_to_memory(start, num_frames, stride)
 
     # Important for further RMSD analysis.
     print("If old dt was " + str(ps_timestep) + " ps, new dt is " + \
