@@ -24,61 +24,62 @@ def get_params():
     """
 
     # If a json file is provided,
-    # read in parameters from json file (web implementation).
+    # read in parameters from json file.
     possible_json_file = sys.argv[1].lower()
     if os.path.splitext(possible_json_file)[1][1:] == "json":
         with open(sys.argv[1], 'r') as param_file:
             params = json.load(param_file)
     else:
         # Otherwise parse the parameters from the system arguments.
-        parser = argparse.ArgumentParser(description='Process MD trajectory.')
+        parser = argparse.ArgumentParser(description='Compress a MD trajectory.')
 
-        # First get all universal parameters.
+        # First get all parameters.
         parser.add_argument('--top_file', metavar='t', type=str, nargs="?",
                             help='The topology filename (e.g., psf)')
         parser.add_argument('--coor_file', metavar='c', type=str, nargs="?",
-                            help=('The coordinate (trajectory)',
-                                  ' filename (e.g., dcd)'))
+                            help='The coordinate (trajectory)' +\
+                                  ' filename (e.g., dcd)')
         parser.add_argument('--selection', metavar='s', type=str, nargs="?",
                             default="name CA",
-                            help=('The atom selection for the region of ',
-                                  'interest (default "name CA"). ',
-                                  'See https://goo.gl/kVeQuN for details on ',
-                                  'how to construct a selection.'))
+                            help='The atom selection for the region of ' +\
+                                  'interest (default "name CA"). ' +\
+                                  'See https://goo.gl/kVeQuN for details on ' +\
+                                  'how to construct a selection.')
         parser.add_argument('--align_sel', metavar='as', type=str, nargs="?",
                             default="NOT_SPECIFIED",
-                            help=('The atom selection for aligning (default, ',
-                                  'whatever --selection is). You may wish to ',
-                                  'align by one selection, but analyze a ',
-                                  'different selection. For example, aligning ',
-                                  'by all CA, but clustering on the CA of a ',
-                                  'specific flexible loop.'))
+                            help='The atom selection for aligning (default, ' +\
+                                  'whatever --selection is). You may wish to ' +\
+                                  'align by one selection, but analyze a ' +\
+                                  'different selection. For example, aligning ' +\
+                                  'by all CA, but compressing the whole protein.')
         parser.add_argument('--output_dir', metavar='od', type=str, nargs="?",
                             default=None,
-                            help=('The directory to store output files ',
-                                  '(coordinate file directory by default).'))
+                            help='The directory to store output files ' +\
+                                  '(coordinate file directory by default).')
         parser.add_argument('--dir', action="store_true",
-                            help=('If present, no need to provide topology ',
-                                  'and coordinate files, scripts will select ',
-                                  'first trajectory in current directory.'))
+                            help='If present, no need to provide topology ' +\
+                                  'and coordinate files, scripts will select ' +\
+                                  'first trajectory in current directory.' +\
+                                  'Please only have the files you wish to load' +\
+                                  'in your working directory.')
         parser.add_argument('--stride', metavar='ns', type=int,
                             nargs="?", default=1,
-                            help=('How many frames to stride by ',
-                                  '(default 1, do nothing).'))
+                            help='How many frames to stride by ' +\
+                                  '(default 1, do nothing).')
         parser.add_argument('--starting_frame', metavar='sf',
                             type=int, nargs="?", default=0,
-                            help=('Which frame to start trimming from ',
-                                '(default is 0).'))
-        parser.add_argument('--max_cumulative_variance', metavar='var', type=float,
+                            help='Which frame to start trimming from ' +\
+                                '(default is 0).')
+        parser.add_argument('--cum_var', metavar='var', type=float,
                             nargs='?', default=0.90, 
-                            help=('Cumulative variance type as decimal',
-                                  '(default is 0.95)'))
-        parser.add_argument('precision', metavar='p', type=int,
+                            help='Cumulative variance type as float' +\
+                                  '(default is 0.90)')
+        parser.add_argument('--precision', metavar='p', type=int,
                             nargs='?', default=2,
-                            help=('How many decimal places to round PCA ',
-                                  'vectors, coefficients, and atomic ',
-                                  'coordinates to. (default is 2)'))
-        
+                            help='How many decimal places to round PCA ' +\
+                                  'vectors, coefficients, and atomic ' +\
+                                  'coordinates to. (default is 2)')
+
         # Parse the arguments.
         args = parser.parse_args()
 

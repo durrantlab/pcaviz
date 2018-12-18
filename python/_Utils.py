@@ -34,9 +34,11 @@ def output_filename(description, ext, coor_file, output_dir=None):
     # Put it in the right path.
     if output_dir is not None: 
         filename = output_dir + os.path.basename(filename)
-    
+   
+    # Let the user know where it is going.
     print "Writing to file: " + filename
-
+    
+    # Return the filename.
     return filename
 
 
@@ -140,12 +142,12 @@ def load_traj(top_file, coor_file=None, align=True,
 
     # Align the trajectory if requested.
     if align:
-        traj = align_trajectory(traj, sel_str=align_sel)
+        traj = align_trajectory(traj, align_sel=align_sel)
 
     return traj
 
 
-def align_trajectory(traj, sel_str="name CA"):
+def align_trajectory(traj, align_sel="name CA"):
     """
     This function aligns a trajectory to its first frame according to an atom selection.
 
@@ -164,7 +166,7 @@ def align_trajectory(traj, sel_str="name CA"):
 
     # Align the trajectory to current frame of trajectory
     # (in this case the first).
-    alignment = align.AlignTraj(traj, traj, in_memory=True, select=sel_str)
+    alignment = align.AlignTraj(traj, traj, in_memory=True, select=align_sel)
     alignment.run()
 
     # Aligned trajectory is in traj.
@@ -205,32 +207,6 @@ def compress_list(to_round, num_decimals, is_coor=False):
     else:
         compressed_list = compressed_list.tolist()
 
+    # Return compressed list.
     return compressed_list
 
-
-def stride_and_trim_traj(traj, stride=1, start_frame=0):
-    """
-    Strides and trims the beginning of a trajectory by a user-specified amount.
-
-    Requires MDAnalysis.
-
-    :param MDAnalsysis.Universe traj: The MDAnalysis Universe being strided or trimmed.
-
-    :param int stride: The stride amount to use (e.g. 2 means every other frame is kept). Defaults to no striding.
-
-    :param int start_frame: The first frame of traj that will be kept. Defaults to no trimming.
-
-    :return: An MDAnalysis Universe based on traj with some number of frames removed according to provided parameters, stored in memory.
-    :rtype: :class:'MDAnalysis.Universe'
-    """
-
-    # Make sure we are affecting every atom in the trajectory.
-    sel = traj.select_atoms("all")
-
-    # Find number of frames in trajectory.
-    num_frames = len(traj.trajectory)
-
-    # Prune and trim as necessary. This also transfers the trajectory into memory.
-    traj.transfer_to_memory(start, num_frames, stride)
-
-    return traj
