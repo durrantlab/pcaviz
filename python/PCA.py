@@ -37,8 +37,6 @@ def get_PCA_trajectory(traj, selection, cum_var):
     get_trajectory_pca = pca.PCA(traj, selection)
     pca_space = get_trajectory_pca.run()
 
-    # Access the components themselves.
-    pca_vectors = pca_space.p_components
     # Calculate how many components are required to cumulatively explain desired variance.
     n_pcs = np.where(get_trajectory_pca.cumulated_variance > cum_var)[0][0]
 
@@ -46,11 +44,18 @@ def get_PCA_trajectory(traj, selection, cum_var):
     atomgroup = traj.select_atoms(selection)
 
     # Get average atomic coordinates.
-    coords_avg_atoms = traj.trajectory.timeseries(asel=atomgroup).mean(axis=1)
+    coords_getter = AnalysisFromFunction(lambda ag: ag.positions.copy(), atomgroup)
+    coords_avg_atoms = (coords_getter.run().results).mean(axis=0)
 
     # And project onto the principal components.
     coords_project_onto_pca_space = get_trajectory_pca.transform(atomgroup,n_components=n_pcs)
-    
+
+    # Retrieve the vectors themselves.
+    pca_vectors = get_trajectory_pca.p_components[:,:n_pcs]
+
+    print len(pca_vectors)
+    print len(coords_project_onto_pca_space)
+    print len(coords_avg_atoms)
     # Return only the information necessary for compression and expansion.
     return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms
 
