@@ -196,7 +196,7 @@ class BrowserSim {
             return summedMultipledComponents;
         });
 
-        // Now average the flattened coordinates over the frames.
+        // Now average the flattened coordinates over the frame windowe.
         let summedCoorsOverFrames = coorsFlattenedForFrames.reduce((summedCoors, newCoors) => {
             return MathUtils.sumArrayOfFloat32Arrays([summedCoors, newCoors]);
         });
@@ -205,12 +205,17 @@ class BrowserSim {
             1.0 / framesToAvg.length, summedCoorsOverFrames
         );
 
+        // Add in the average coordinates from the JSON data.
+        averageCoorsOverFrames = MathUtils.sumArrayOfFloat32Arrays([
+            averageCoorsOverFrames, this._averagePositions
+        ]);
+
         // Reshape the averaged coordinates into a list of Float32Array triplets.
         let coors = MathUtils._range(0, this._componentSize / 3).map(i => {
             return new Float32Array([
-                averageCoorsOverFrames[i],
-                averageCoorsOverFrames[i + 1],
-                averageCoorsOverFrames[i + 2]
+                averageCoorsOverFrames[3 * i],
+                averageCoorsOverFrames[3 * i + 1],
+                averageCoorsOverFrames[3 * i + 2]
             ]);
         })
 
@@ -237,22 +242,12 @@ class _IO {
      * @returns void
      */
     public "loadJSON"(path: string, callBack: any = () => {}): void {
-        jQuery.getJSON(path, (data) => {
-            // Setup the frames
-            this._parent._numFrames = data["frames"].length;
-            this._parent._frameSize = data["frames"][0].length;
-            this._parent._frameData = {};
-            this._parent._frameStride = 5;  // TODO: SHOULD BE USER DEFINED.
+        jQuery.getJSON(path, (data: any) => {
+            // console.log(data);
 
-            // Set up the components
-            this._parent._numComponents = data["vectors"].length;
-            this._parent._componentSize = data["vectors"][0].length;
-            this._parent._componentData = []
-
-            // Here you will put the average positions, but not ready yet.
-            this._parent._averagePositions = new Float32Array(
-                this._parent._numComponents * this._parent._componentSize
-            );
+            // Get some general info about the data.
+            this._parent._frameSize = data["coeffs"][0].length;
+            this._parent._numComponents = data["vecs"].length;
 
             // The length of the frame coefficients must equal the number of
             // components.
@@ -262,66 +257,25 @@ class _IO {
                                 `as the number of components (${this._parent._numComponents})`);
             }
 
-            // Convert frames to array of typed arrays. It's faster.
-            for (let idx1 in data["frames"]) {
-                if (data["frames"].hasOwnProperty(idx1)) {
-                    let idx1Num = parseInt(idx1, 10);
-                    this._parent._frameData[idx1Num * this._parent._frameStride] = new Float32Array(
-                        data["frames"][idx1Num]
-                    );
-                }
-            }
+            // Get the precision of the data (used to eliminate decimal points
+            // from the JSON file).
+            let precision = data["params"]["precision"];
+            let precisionFactor = 10**-precision;
 
-            // Now go through and fill in the ones inbetween the explicitly
-            // specified frames (with interpolation). Doing linear
-            // interpolation for simplicity (rather than spline, for example).
-            for (let frameIdx = 0; frameIdx < data["frames"].length * this._parent._frameStride; frameIdx++) {
-                if (this._parent._frameData[frameIdx] === undefined) {
-                    // This frame isn't defined.
+            // Set up the frames
+            this._loadJSONSetupFrameCoeffs(data, precisionFactor);
 
-                    // Get the previous defined frame.
-                    let beforeFrame = this._parent._frameStride * Math.floor(
-                        frameIdx / this._parent._frameStride
-                    );
+            // Set up the components
+            this._loadJSONSetupPCAComponents(data, precisionFactor);
 
-                    // Get the next defined frame.
-                    let afterFrame = beforeFrame + this._parent._frameStride;
+            // Set up the average positions.
+            this._loadJSONSetupAveragePos(data, precisionFactor);
 
-                    // If either doesn't exist, go to the next one.
-                    if ((this._parent._frameData[beforeFrame] === undefined) ||
-                        (this._parent._frameData[afterFrame] === undefined)) {
-                        continue;
-                    }
+            // Here you will put the average positions, but not ready yet.
+            // this._parent._averagePositions = new Float32Array(
+            //     this._parent._numComponents * this._parent._componentSize
+            // );
 
-                    // Get the ratio to interpolate (linear).
-                    let ratio = (frameIdx - beforeFrame) / this._parent._frameStride;
-
-                    // Get the difference between the two vectors.
-                    let delta = MathUtils.sumArrayOfFloat32Arrays([
-                        this._parent._frameData[beforeFrame],
-                        MathUtils.multiplyFloat32ArrayByScalar(
-                            -1.0, this._parent._frameData[afterFrame]
-                        )
-                    ]);
-
-                    // Calculate the coefficients of the undefined frame.
-                    let newFrame = MathUtils.sumArrayOfFloat32Arrays([
-                        this._parent._frameData[beforeFrame],
-                        MathUtils.multiplyFloat32ArrayByScalar(ratio, delta)
-                    ]);
-
-                    // Save it to the object.
-                    this._parent._frameData[frameIdx] = newFrame;
-                }
-            }
-
-            // Same with vectors.
-            for (let idx1 in data["vectors"]) {
-                if (data["vectors"].hasOwnProperty(idx1)) {
-                    let idx1Num = parseInt(idx1, 10);
-                    this._parent._componentData[idx1Num] = new Float32Array(data["vectors"][idx1Num]);
-                }
-            }
         }).done(() => {
             callBack();
         }).fail(() => {
@@ -330,6 +284,109 @@ class _IO {
             console.log( "complete" );
         }); */
     };
+
+    private _loadJSONSetupFrameCoeffs(data: any, precisionFactor: number) {
+        // Setup the frames
+        this._parent._numFrames = data["coeffs"].length;
+        this._parent._frameData = {};  // Keys will be frame indexes,
+                                        // values will be Float32Array
+                                        // containing the PCA coefficients
+                                        // for the corresponding frame.
+        this._parent._frameStride = 5;  // TODO: SHOULD BE USER DEFINED.
+
+        // Convert frames to array of typed arrays. It's faster.
+        for (let idx1 in data["coeffs"]) {
+            if (data["coeffs"].hasOwnProperty(idx1)) {
+                let idx1Num = parseInt(idx1, 10);
+                this._parent._frameData[idx1Num * this._parent._frameStride] = new Float32Array(
+                    data["coeffs"][idx1Num]
+                );
+            }
+        }
+
+        // The coefficients need to be converted from int to floats.
+        for (let idx1 in this._parent._frameData) {
+            if (this._parent._frameData.hasOwnProperty(idx1)) {
+                this._parent._frameData[idx1] = this._parent._frameData[idx1].map(v => precisionFactor * v);
+            }
+        }
+
+        // Now go through and fill in the ones inbetween the explicitly
+        // specified frames (with interpolation). Doing linear interpolation
+        // for simplicity (rather than spline, for example).
+        for (let frameIdx = 0;
+             frameIdx < Object.keys(this._parent._frameData).length * this._parent._frameStride;
+             frameIdx++) {
+            if (this._parent._frameData[frameIdx] === undefined) {
+                // This frame isn't defined.
+
+                // Get the previous defined frame.
+                let beforeFrame = this._parent._frameStride * Math.floor(
+                    frameIdx / this._parent._frameStride
+                );
+
+                // Get the next defined frame.
+                let afterFrame = beforeFrame + this._parent._frameStride;
+
+                // If either doesn't exist, go to the next one.
+                if ((this._parent._frameData[beforeFrame] === undefined) ||
+                    (this._parent._frameData[afterFrame] === undefined)) {
+                    continue;
+                }
+
+                // Get the ratio to interpolate (linear).
+                let ratio = (frameIdx - beforeFrame) / this._parent._frameStride;
+
+                // Get the difference between the two vectors.
+                let delta = MathUtils.sumArrayOfFloat32Arrays([
+                    this._parent._frameData[beforeFrame],
+                    MathUtils.multiplyFloat32ArrayByScalar(
+                        -1.0, this._parent._frameData[afterFrame]
+                    )
+                ]);
+
+                // Calculate the coefficients of the undefined frame.
+                let newFrame = MathUtils.sumArrayOfFloat32Arrays([
+                    this._parent._frameData[beforeFrame],
+                    MathUtils.multiplyFloat32ArrayByScalar(ratio, delta)
+                ]);
+
+                // Save it to the object.
+                this._parent._frameData[frameIdx] = newFrame;
+            }
+        }
+    }
+
+    private _loadJSONSetupPCAComponents(data: any, precisionFactor: number) {
+        // Set up the components
+        this._parent._componentSize = data["vecs"][0].length;
+        this._parent._componentData = []
+
+        // Same with vectors.
+        for (let idx1 in data["vecs"]) {
+            if (data["vecs"].hasOwnProperty(idx1)) {
+                let idx1Num = parseInt(idx1, 10);
+                this._parent._componentData[idx1Num] = new Float32Array(data["vecs"][idx1Num]);
+            }
+        }
+
+        // The vectors need to be converted from int to floats.
+        for (let idx1 in this._parent._componentData) {
+            if (this._parent._componentData.hasOwnProperty(idx1)) {
+                let idxNum = parseInt(idx1, 10);
+                this._parent._componentData[idxNum] = this._parent._componentData[idxNum].map(
+                    v => precisionFactor * v
+                );
+            }
+        }
+    }
+
+    private _loadJSONSetupAveragePos(data: any, precisionFactor: number) {
+        // Make the average coordinates, converting them from int to float.
+        this._parent._averagePositions = new Float32Array(
+            data["coors"].map(v => precisionFactor * v)
+        );
+    }
 
     /**
      * Makes a multi-frame PDB file of the simulation. Good for debugging.
@@ -569,9 +626,6 @@ class _Viewer {
         this._parent._params["visStyle"](this._model);
     }
 
-
-
-
     /**
      * The function to add PDB txt if in GENERIC mode.
      * @param  {string} pdbTxt The PDB text.
@@ -608,9 +662,6 @@ class _Viewer {
             this._model, this._parent._params["viewer"], this
         );
     }
-
-
-
 }
 
 class _Player {
