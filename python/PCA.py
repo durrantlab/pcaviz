@@ -51,7 +51,7 @@ def get_PCA_trajectory(traj, selection, cum_var):
     coords_project_onto_pca_space = get_trajectory_pca.transform(atomgroup,n_components=n_pcs)
 
     # Retrieve the vectors themselves.
-    pca_vectors = get_trajectory_pca.p_components[n_pcs]
+    pca_vectors = get_trajectory_pca.p_components[:n_pcs]
 
     print pca_vectors.shape
     print coords_project_onto_pca_space.shape
