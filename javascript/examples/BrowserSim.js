@@ -53,7 +53,7 @@ var BrowserSim = /** @class */ (function () {
             "viewer": undefined,
             "viewerType": undefined,
             "durationInMilliseconds": 10000,
-            "updateFreqInMilliseconds": 10,
+            "updateFreqInMilliseconds": 16.67,
             "loop": true,
             "windowAverageSize": 1,
             "parent": this,
@@ -550,8 +550,7 @@ var _Player = /** @class */ (function () {
      * @param  {*} parent The parent class (BrowserSim Object).
      */
     function _Player(parent) {
-        this._startTime = undefined;
-        this._timer = undefined;
+        this._animationFrameID = undefined;
         this._parent = undefined;
         this._parent = parent;
     }
@@ -562,38 +561,50 @@ var _Player = /** @class */ (function () {
      */
     _Player.prototype["start"] = function (params) {
         var _this = this;
-        // loop: boolean = true, windowAverageSize: number = 1) {
-        this._startTime = new Date().getTime();
         // Allow the user to change some of the parameters on start. So
         // duration doesn't always have to be fixed, for example.
         this._parent.updateParams(params);
-        // Clear previous intervals.
-        if (this._timer !== undefined) {
-            clearInterval(this._timer);
+        // Clear previous requestAnimationFrames.
+        if (this._animationFrameID !== undefined) {
+            cancelAnimationFrame(this._animationFrameID);
         }
-        this._timer = setInterval(function () {
-            // How far along the animation are you?
-            var curTime = new Date().getTime();
-            var playRatio = (curTime - _this._startTime) / _this._parent._params["durationInMilliseconds"];
-            // If you've gone over the end of the animation, start again from
-            // the beginning.
-            if ((!_this._parent._params["loop"]) && (playRatio > 1.0)) {
-                _this["stop"]();
-                return;
+        /**
+         * The loop function.
+         * @param  {number} timestamp The number of milliseconds since the
+         * requestAnimationFrame started.
+         */
+        var timestampLastFire = 0;
+        var loop = function (timestamp) {
+            var msSinceLastFire = timestamp - timestampLastFire;
+            // Enough time has passed that we should update.
+            if (msSinceLastFire > _this._parent._params["updateFreqInMilliseconds"]) {
+                // Save the new timestampLastFire value.
+                timestampLastFire = timestamp;
+                // How far along the animation are you?
+                var playRatio = (timestamp / _this._parent._params["durationInMilliseconds"]) % 1.0;
+                // If you've gone over the end of the animation, start again from
+                // the beginning.
+                if ((!_this._parent._params["loop"]) && (playRatio > 1.0)) {
+                    _this["stop"]();
+                    return;
+                }
+                // Get the current frame.
+                var curFrame = Math.floor(_this._parent._numFrames * playRatio);
+                _this._parent["viewer"].updateAtomPos(curFrame);
             }
-            // Get the current frame.
-            var curFrame = Math.floor(_this._parent._numFrames * playRatio);
-            _this._parent["viewer"].updateAtomPos(curFrame);
-        }, this._parent._params["updateFreqInMilliseconds"]);
+            // Start the next iteration.
+            requestAnimationFrame(loop);
+        };
+        this._animationFrameID = requestAnimationFrame(loop);
     };
     /**
      * Stops the simulation animation.
      * @returns void
      */
     _Player.prototype["stop"] = function () {
-        // Clear previous intervals.
-        if (this._timer !== undefined) {
-            clearInterval(this._timer);
+        // Clear previous requestAnimationFrames.
+        if (this._animationFrameID !== undefined) {
+            cancelAnimationFrame(this._animationFrameID);
         }
     };
     /**
@@ -664,4 +675,32 @@ var MathUtils;
     }
     MathUtils.multiplyFloat32ArrayByScalar = multiplyFloat32ArrayByScalar;
 })(MathUtils || (MathUtils = {}));
+// Polyfill requestAnimationFrame
+// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
+// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
+// MIT license
+(function () {
+    var lastTime = 0;
+    var vendors = ['ms', 'moz', 'webkit', 'o'];
+    for (var x = 0; x < vendors.length && !window["requestAnimationFrame"]; ++x) {
+        window["requestAnimationFrame"] = window[vendors[x] + 'RequestAnimationFrame'];
+        window["cancelAnimationFrame"] = window[vendors[x] + 'CancelAnimationFrame']
+            || window[vendors[x] + 'CancelRequestAnimationFrame'];
+    }
+    if (!window["requestAnimationFrame"])
+        window["requestAnimationFrame"] = function (callback, element) {
+            var currTime = new Date().getTime();
+            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+            var id = window.setTimeout(function () {
+                callback(currTime + timeToCall);
+            }, timeToCall);
+            lastTime = currTime + timeToCall;
+            return id;
+        };
+    if (!window["cancelAnimationFrame"])
+        window["cancelAnimationFrame"] = function (id) {
+            clearTimeout(id);
+        };
+}());
 window["BrowserSim"] = BrowserSim; // To survive closure compiler.

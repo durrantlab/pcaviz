@@ -53,7 +53,7 @@ def demo_HTML(page):
                     viewerType: viewerType,
                     visStyle: """ + page.vis_style + """
                     durationInMilliseconds: 10000,
-                    updateFreqInMilliseconds: 10,
+                    updateFreqInMilliseconds: 16.67,  // 60 fps
                     loop: true,
                     windowAverageSize: 1,""" + extra_browser_sim_params + """
                 });
@@ -63,7 +63,7 @@ def demo_HTML(page):
                 browserSim.io.loadJSON("data.json", () => {
                     browserSim.player.start({
                         durationInMilliseconds: 10000,
-                        updateFreqInMilliseconds: 10,
+                        updateFreqInMilliseconds: 16.67,  // 60 fps
                         loop: true,
                         windowAverageSize: 25
                     });

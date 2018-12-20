@@ -33,7 +33,7 @@
                     viewerType: viewerType,
                     visStyle: {sphere: {color: 'green'}},
                     durationInMilliseconds: 10000,
-                    updateFreqInMilliseconds: 10,
+                    updateFreqInMilliseconds: 16.67,  // 60 fps
                     loop: true,
                     windowAverageSize: 1,
                 });
@@ -43,7 +43,7 @@
                 browserSim.io.loadJSON("data.json", () => {
                     browserSim.player.start({
                         durationInMilliseconds: 10000,
-                        updateFreqInMilliseconds: 10,
+                        updateFreqInMilliseconds: 16.67,  // 60 fps
                         loop: true,
                         windowAverageSize: 25
                     });
