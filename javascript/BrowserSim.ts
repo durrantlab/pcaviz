@@ -9,6 +9,9 @@ interface Params {
     "updateFreqInMilliseconds"?: number;
     "loop"?: boolean;
     "windowAverageSize"?: number;
+    "caching"?: string;  // none, continuous, or pre
+    "cacheModeNum"?: number;  // A numerical representation of "caching", for
+                              // speed.
     "halfWindowSize"?: number;    // Programmatically added.
     "parent"?: any;               // Optional because user doesn't need to
                                   // specify. Always added programmatically.
@@ -22,7 +25,8 @@ class BrowserSim {
     // classes. But they are not public to the user and so do not need to be
     // protected from closure compiler.
 
-    public _numFrames: number = 0;
+    public _numFramesInJSON: number = 0;
+    public _numFramesTotal: number = 0;  // _numFramesInJSON * _frameStride.
     public _frameSize: number = 0;
 
     // Keys are frame indecies. Values are Float32Arrays with the
@@ -36,6 +40,8 @@ class BrowserSim {
 
     public _averagePositions = undefined;
     public _params: Params = {};
+
+    public _cachedFrameCoors = {};
 
     /**
      * Constructor for the BrowserSim class.
@@ -75,8 +81,6 @@ class BrowserSim {
         let browserSimVar = 'The "browserSim" variable is the instantiated ' +
                                'BrowserSim object.';
 
-
-
         // Set the defaults and keeps any previous ones not now specified.
         let defaults: Params = {
             "viewer": undefined,
@@ -84,6 +88,8 @@ class BrowserSim {
             "durationInMilliseconds": 10000,
             "updateFreqInMilliseconds": 16.67,  // 60 fps
             "loop": true,
+            "caching": "none",
+            "cacheModeNum": 0,  // corresponds to caching none.
             "windowAverageSize": 1,
             "parent": this,
             "loadPDBTxt": (pdbTxt: string, viewer?: any, browserSim?: any) => {
@@ -152,6 +158,45 @@ class BrowserSim {
                     break;
             }
         }
+
+        // Modify the updateFreqInMilliseconds parameter so FPS always <= 60
+        // (browser limitation anyway).
+        let fpsSixtyUpdateFreqInMilliseconds = 1000.0/60.0;
+        if (this._params["updateFreqInMilliseconds"] < fpsSixtyUpdateFreqInMilliseconds) {
+            this._params["updateFreqInMilliseconds"] = fpsSixtyUpdateFreqInMilliseconds;
+        }
+
+        // Slow playing animations may not be able to maintain even that FPS.
+        // If the number of frames is available, further modify if necessary.
+        if (this._numFramesInJSON > 0) {
+            // Note that there are 0 frames by default. So if 0, there is no
+            // frame data yet.
+            let fpsPerSim = this._params["durationInMilliseconds"] / this._numFramesTotal;
+            if (this._params["updateFreqInMilliseconds"] < fpsPerSim) {
+                this._params["updateFreqInMilliseconds"] = fpsPerSim;
+            }
+        }
+
+        // Set the cacheModeNum based on the caching
+        switch(this._params["caching"]) {
+            case "none":
+                this._params["cacheModeNum"] = 0;
+                break;
+            case "continuous":
+                this._params["cacheModeNum"] = 1;
+                break;
+            case "pre":
+                this._params["cacheModeNum"] = 2;
+                break;
+            default:
+                throw new Error(
+                    `Invalid caching value: ${this._params["caching"]}. Valid ` +
+                    `values are "none", "continuous", and "pre".`
+                );
+        }
+
+        // Pre-cache if necessary.
+        this.cacheAllFrameCoorsIfNeeded();
     }
 
     /**
@@ -161,65 +206,95 @@ class BrowserSim {
      *                        coordinates, for each frame.
      */
     public getFrameCoors(frame: number): Float32Array[] {
-        // Consider multiple frames if necessary.
-        let framesToAvg = MathUtils._range(
-            frame - this._params["halfWindowSize"],
-            frame + this._params["halfWindowSize"] + 1
-        );
+        let coors = undefined;
 
-        // Get the coefficients for each of those frames (an array of
-        // Float32Array's)
-        let framesCoefficients = framesToAvg.map((frameIdx): any => {
-            // Make sure frame never out of bounds.
-            if (frameIdx < 0) { frameIdx += this._numFrames; }
-            frameIdx = frameIdx % this._numFrames;
+        // console.log(this._params["cacheModeNum"], this._cachedFrameCoors, frame, this._cachedFrameCoors[frame]);
 
-            // Get the frame data (PCA coefficients).
-            return this._frameData[frameIdx];
-        });
+        if ((this._params["cacheModeNum"] === 0) || (this._cachedFrameCoors[frame] === undefined)) {
+            // So either cache is not turned on (none), or there's no cached
+            // data for this frame.
 
-        // Get the flattened coordinates for the frames (i.e., coordinates not
-        // separated into triplets).
-        let coorsFlattenedForFrames = framesCoefficients.map((frameCoefficients) => {
-            // frameCoefficients is a Float32Array containing all the
-            // coefficients for a given frame. Need to multiple those by the
-            // corresponding components.
+            // Consider multiple frames if necessary.
+            let framesToAvg = MathUtils._range(
+                frame - this._params["halfWindowSize"],
+                frame + this._params["halfWindowSize"] + 1
+            );
 
-            let multipledComponents = this._componentData.map((component, componentIdx) => {
-                return MathUtils.multiplyFloat32ArrayByScalar(
-                    frameCoefficients[componentIdx], component
-                );
+            // Get the coefficients for each of those frames (an array of
+            // Float32Array's)
+            let framesCoefficients = framesToAvg.map((frameIdx): any => {
+                // Make sure frame never out of bounds.
+                if (frameIdx < 0) { frameIdx += this._numFramesTotal; }
+                frameIdx = frameIdx % this._numFramesTotal;
+
+                // Get the frame data (PCA coefficients).
+                return this._frameData[frameIdx];
             });
 
-            let summedMultipledComponents = MathUtils.sumArrayOfFloat32Arrays(multipledComponents);
+            // Get the flattened coordinates for the frames (i.e., coordinates not
+            // separated into triplets).
+            let coorsFlattenedForFrames = framesCoefficients.map((frameCoefficients) => {
+                // frameCoefficients is a Float32Array containing all the
+                // coefficients for a given frame. Need to multiple those by the
+                // corresponding components.
 
-            return summedMultipledComponents;
-        });
+                let multipledComponents = this._componentData.map((component, componentIdx) => {
+                    return MathUtils.multiplyFloat32ArrayByScalar(
+                        frameCoefficients[componentIdx], component
+                    );
+                });
 
-        // Now average the flattened coordinates over the frame windowe.
-        let summedCoorsOverFrames = coorsFlattenedForFrames.reduce((summedCoors, newCoors) => {
-            return MathUtils.sumArrayOfFloat32Arrays([summedCoors, newCoors]);
-        });
+                let summedMultipledComponents = MathUtils.sumArrayOfFloat32Arrays(multipledComponents);
 
-        let averageCoorsOverFrames = MathUtils.multiplyFloat32ArrayByScalar(
-            1.0 / framesToAvg.length, summedCoorsOverFrames
-        );
+                return summedMultipledComponents;
+            });
 
-        // Add in the average coordinates from the JSON data.
-        averageCoorsOverFrames = MathUtils.sumArrayOfFloat32Arrays([
-            averageCoorsOverFrames, this._averagePositions
-        ]);
+            // Now average the flattened coordinates over the frame windowe.
+            let summedCoorsOverFrames = coorsFlattenedForFrames.reduce((summedCoors, newCoors) => {
+                return MathUtils.sumArrayOfFloat32Arrays([summedCoors, newCoors]);
+            });
 
-        // Reshape the averaged coordinates into a list of Float32Array triplets.
-        let coors = MathUtils._range(0, this._componentSize / 3).map(i => {
-            return new Float32Array([
-                averageCoorsOverFrames[3 * i],
-                averageCoorsOverFrames[3 * i + 1],
-                averageCoorsOverFrames[3 * i + 2]
+            let fac = 1.0 / framesToAvg.length;
+            let averageCoorsOverFrames = MathUtils.multiplyFloat32ArrayByScalar(
+                fac, summedCoorsOverFrames
+            );
+
+            // Add in the average coordinates from the JSON data.
+            averageCoorsOverFrames = MathUtils.sumArrayOfFloat32Arrays([
+                averageCoorsOverFrames, this._averagePositions
             ]);
-        })
+
+            // Reshape the averaged coordinates into a list of Float32Array triplets.
+            coors = MathUtils._range(0, this._componentSize / 3).map(i => {
+                let three_i = 3 * i;
+                return new Float32Array([
+                    averageCoorsOverFrames[three_i],
+                    averageCoorsOverFrames[three_i + 1],
+                    averageCoorsOverFrames[three_i + 2]
+                ]);
+            });
+
+            if (this._params["cacheModeNum"] > 0) {
+                this._cachedFrameCoors[frame] = coors;
+            }
+        } else {
+            // Get the cached version.
+            coors = this._cachedFrameCoors[frame];
+            // console.log("cached");
+        }
 
         return coors;
+    }
+
+    public cacheAllFrameCoorsIfNeeded() {
+        // If the user has requested pre-caching, load all frames now.
+        if (this._params["cacheModeNum"] === 2) {
+            this._cachedFrameCoors = {};  // Reset everything.
+            for (let frameIdx = 0; frameIdx < this._numFramesTotal; frameIdx++) {
+                console.log("Caching frame", frameIdx);
+                this.getFrameCoors(frameIdx);
+            }
+        }
     }
 }
 
@@ -243,8 +318,6 @@ class _IO {
      */
     public "loadJSON"(path: string, callBack: any = () => {}): void {
         jQuery.getJSON(path, (data: any) => {
-            // console.log(data);
-
             // Get some general info about the data.
             this._parent._frameSize = data["coeffs"][0].length;
             this._parent._numComponents = data["vecs"].length;
@@ -270,12 +343,6 @@ class _IO {
 
             // Set up the average positions.
             this._loadJSONSetupAveragePos(data, precisionFactor);
-
-            // Here you will put the average positions, but not ready yet.
-            // this._parent._averagePositions = new Float32Array(
-            //     this._parent._numComponents * this._parent._componentSize
-            // );
-
         }).done(() => {
             callBack();
         }).fail(() => {
@@ -287,12 +354,13 @@ class _IO {
 
     private _loadJSONSetupFrameCoeffs(data: any, precisionFactor: number) {
         // Setup the frames
-        this._parent._numFrames = data["coeffs"].length;
+        this._parent._numFramesInJSON = data["coeffs"].length;
         this._parent._frameData = {};  // Keys will be frame indexes,
                                         // values will be Float32Array
                                         // containing the PCA coefficients
                                         // for the corresponding frame.
-        this._parent._frameStride = 5;  // TODO: SHOULD BE USER DEFINED.
+        this._parent._frameStride = data["params"]["stride"];
+        this._parent._numFramesTotal = this._parent._numFramesInJSON * this._parent._frameStride;
 
         // Convert frames to array of typed arrays. It's faster.
         for (let idx1 in data["coeffs"]) {
@@ -314,41 +382,40 @@ class _IO {
         // Now go through and fill in the ones inbetween the explicitly
         // specified frames (with interpolation). Doing linear interpolation
         // for simplicity (rather than spline, for example).
-        for (let frameIdx = 0;
-             frameIdx < Object.keys(this._parent._frameData).length * this._parent._frameStride;
-             frameIdx++) {
-            if (this._parent._frameData[frameIdx] === undefined) {
-                // This frame isn't defined.
+        let numExistingFrameData = Object.keys(this._parent._frameData).length;
+        let numFrames = numExistingFrameData * this._parent._frameStride;
+        let beforeFrameIdx = undefined;
+        let afterFrameIdx = undefined;
+        let deltaDefinedFrames = undefined;
+        for (let frameIdx = 0; frameIdx < numFrames; frameIdx++) {
+            if (this._parent._frameData[frameIdx] !== undefined) {
+                // This frame is defined.
 
-                // Get the previous defined frame.
-                let beforeFrame = this._parent._frameStride * Math.floor(
-                    frameIdx / this._parent._frameStride
-                );
+                // Save this as the previous defined frame.
+                beforeFrameIdx = frameIdx;
 
-                // Get the next defined frame.
-                let afterFrame = beforeFrame + this._parent._frameStride;
+                // Save the next defined frame.
+                afterFrameIdx = frameIdx + this._parent._frameStride;
 
-                // If either doesn't exist, go to the next one.
-                if ((this._parent._frameData[beforeFrame] === undefined) ||
-                    (this._parent._frameData[afterFrame] === undefined)) {
-                    continue;
+                // Get the difference between the two frame vectors.
+                if (this._parent._frameData[afterFrameIdx] !== undefined) {
+                    // So if it isn't defined, keep previously caluclated
+                    // deltas. Typically affects the end of the sim.
+                    deltaDefinedFrames = MathUtils.sumArrayOfFloat32Arrays([
+                        this._parent._frameData[afterFrameIdx],
+                        MathUtils.multiplyFloat32ArrayByScalar(
+                            -1.0, this._parent._frameData[beforeFrameIdx]
+                        )
+                    ]);
                 }
-
+            } else {
                 // Get the ratio to interpolate (linear).
-                let ratio = (frameIdx - beforeFrame) / this._parent._frameStride;
-
-                // Get the difference between the two vectors.
-                let delta = MathUtils.sumArrayOfFloat32Arrays([
-                    this._parent._frameData[beforeFrame],
-                    MathUtils.multiplyFloat32ArrayByScalar(
-                        -1.0, this._parent._frameData[afterFrame]
-                    )
-                ]);
+                let ratio = (frameIdx - beforeFrameIdx) / this._parent._frameStride;
 
                 // Calculate the coefficients of the undefined frame.
                 let newFrame = MathUtils.sumArrayOfFloat32Arrays([
-                    this._parent._frameData[beforeFrame],
-                    MathUtils.multiplyFloat32ArrayByScalar(ratio, delta)
+                    this._parent._frameData[beforeFrameIdx],
+                    MathUtils.multiplyFloat32ArrayByScalar(ratio, deltaDefinedFrames)
                 ]);
 
                 // Save it to the object.
@@ -395,7 +462,7 @@ class _IO {
     public "makePDB"(): string {
         let numAtoms = this._parent._componentSize / 3;
         let pdbTxt = "";
-        for (let frameIdx=0; frameIdx<this._parent._numFrames; frameIdx++) {
+        for (let frameIdx=0; frameIdx<this._parent._numFramesTotal; frameIdx++) {
             pdbTxt += "MODEL " + frameIdx.toString() + "\n";
             for (let atomIdx=0; atomIdx<numAtoms; atomIdx++) {
                 let coor = this._parent.getAtomCoors(frameIdx, atomIdx);
@@ -529,11 +596,11 @@ class _Viewer {
         let newAtomCoors = this._parent.getFrameCoors(frame);
 
         let atoms = this._model.selectedAtoms({});
-        for (let atomIdx=0; atomIdx<atoms.length; atomIdx++) {
-            let coors = newAtomCoors[atomIdx];
-            atoms[atomIdx]["x"] = coors[0];
-            atoms[atomIdx]["y"] = coors[1];
-            atoms[atomIdx]["z"] = coors[2];
+        let arrLen = atoms.length;
+        for (let atomIdx=0; atomIdx<arrLen; atomIdx++) {
+            atoms[atomIdx]["x"] = newAtomCoors[atomIdx][0];
+            atoms[atomIdx]["y"] = newAtomCoors[atomIdx][1];
+            atoms[atomIdx]["z"] = newAtomCoors[atomIdx][2];
         }
     }
 
@@ -574,10 +641,9 @@ class _Viewer {
 
         let atomIdx = 0;
         this._model["structure"]["eachAtom"]((atom, idx) => {
-            let coors = newAtomCoors[atomIdx];
-            atom["x"] = coors[0];
-            atom["y"] = coors[1];
-            atom["z"] = coors[2];
+            atom["x"] = newAtomCoors[atomIdx][0];
+            atom["y"] = newAtomCoors[atomIdx][1];
+            atom["z"] = newAtomCoors[atomIdx][2];
             atomIdx++;
         });
     }
@@ -609,8 +675,7 @@ class _Viewer {
 
         let atomIdx = 0;
         this._model["eachAtom"]((atom, idx) => {
-            let coors = newAtomCoors[atomIdx];
-            atom["_bV"] = coors;
+            atom["_bV"] = newAtomCoors[atomIdx];
             atomIdx++;
         });
     }
@@ -716,7 +781,7 @@ class _Player {
                 }
 
                 // Get the current frame.
-                let curFrame = Math.floor(this._parent._numFrames * playRatio);
+                let curFrame = Math.floor(this._parent._numFramesTotal * playRatio);
 
                 this._parent["viewer"].updateAtomPos(curFrame);
             }
