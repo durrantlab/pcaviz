@@ -36,7 +36,7 @@ def output_filename(description, ext, coor_file, output_dir=None):
         filename = output_dir + os.path.basename(filename)
    
     # Let the user know where it is going.
-    print "Writing to file: " + filename
+    print("Writing to file: " + filename)
     
     # Return the filename.
     return filename
@@ -75,8 +75,8 @@ def find_top_and_coor_files():
         top_file = list_of_both_files[0]
         coor_file = None
         if len(list_of_both_files) > 1:
-            print "Warning: Multiple topology/coordinate files found. " +\
-                  "Using first one found in directory: " + top_file + "."
+            print("Warning: Multiple topology/coordinate files found. " +\
+                  "Using first one found in directory: " + top_file + ".")
     else:
         # List of all MDAnalysis compatible topology file formats,
         # excluding common extension names and formats that act as
@@ -90,8 +90,8 @@ def find_top_and_coor_files():
         if len(list_of_top_files) > 0:
             top_file = list_of_top_files[0]
             if len(list_of_top_files) > 1:
-                print "Warning: Multiple topology files found. " +\
-                      "Using first one found in directory: " + top_file + "."
+                print("Warning: Multiple topology files found. " +\
+                      "Using first one found in directory: " + top_file + ".")
 
         # List of all MDAnalysis compatible coordinate file formats,
         # excluding common extension names and formats that act as
@@ -106,8 +106,8 @@ def find_top_and_coor_files():
         if len(list_of_coor_files) > 0:
             coor_file = list_of_coor_files[0]
             if len(list_of_coor_files) > 1:
-                print "Warning: Multiple coordinate files found. " +\
-                      "Using first one found in directory: " + coor_file + "."
+                print("Warning: Multiple coordinate files found. " +\
+                      "Using first one found in directory: " + coor_file + ".")
 
     return top_file, coor_file
 

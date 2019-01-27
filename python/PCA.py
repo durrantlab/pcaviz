@@ -53,9 +53,9 @@ def get_PCA_trajectory(traj, selection, cum_var):
     # Retrieve the vectors themselves.
     pca_vectors = get_trajectory_pca.p_components[:n_pcs]
 
-    print pca_vectors.shape
-    print coords_project_onto_pca_space.shape
-    print coords_avg_atoms.shape
+    print(pca_vectors.shape)
+    print(coords_project_onto_pca_space.shape)
+    print(coords_avg_atoms.shape)
     # Return only the information necessary for compression and expansion.
     return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms
 
