@@ -186,13 +186,13 @@ var _IO = /** @class */ (function () {
         if (callBack === void 0) { callBack = function () { }; }
         jQuery.getJSON(path, function (data) {
             // Setup the frames
-            _this._parent._numFrames = data["frames"].length;
-            _this._parent._frameSize = data["frames"][0].length;
+            _this._parent._numFrames = data["coeffs"].length;
+            _this._parent._frameSize = data["coeffs"][0].length;
             _this._parent._frameData = {};
             _this._parent._frameStride = 5; // TODO: SHOULD BE USER DEFINED.
             // Set up the components
-            _this._parent._numComponents = data["vectors"].length;
-            _this._parent._componentSize = data["vectors"][0].length;
+            _this._parent._numComponents = data["vecs"].length;
+            _this._parent._componentSize = data["vecs"][0].length;
             _this._parent._componentData = [];
             // Here you will put the average positions, but not ready yet.
             _this._parent._averagePositions = new Float32Array(_this._parent._numComponents * _this._parent._componentSize);
@@ -204,16 +204,17 @@ var _IO = /** @class */ (function () {
                     ("as the number of components (" + _this._parent._numComponents + ")"));
             }
             // Convert frames to array of typed arrays. It's faster.
-            for (var idx1 in data["frames"]) {
-                if (data["frames"].hasOwnProperty(idx1)) {
+            var precision = data["params"]["precision"];
+            for (var idx1 in data["coeffs"]) {
+                if (data["coeffs"].hasOwnProperty(idx1)) {
                     var idx1Num = parseInt(idx1, 10);
-                    _this._parent._frameData[idx1Num * _this._parent._frameStride] = new Float32Array(data["frames"][idx1Num]);
+                    _this._parent._frameData[idx1Num * _this._parent._frameStride] = new Float32Array(data["coeffs"][idx1Num].map(function (v) { return MathUtils.convertToDecimal(v, precision); }));
                 }
             }
             // Now go through and fill in the ones inbetween the explicitly
             // specified frames (with interpolation). Doing linear
             // interpolation for simplicity (rather than spline, for example).
-            for (var frameIdx = 0; frameIdx < data["frames"].length * _this._parent._frameStride; frameIdx++) {
+            for (var frameIdx = 0; frameIdx < data["coeffs"].length * _this._parent._frameStride; frameIdx++) {
                 if (_this._parent._frameData[frameIdx] === undefined) {
                     // This frame isn't defined.
                     // Get the previous defined frame.
@@ -242,12 +243,15 @@ var _IO = /** @class */ (function () {
                 }
             }
             // Same with vectors.
-            for (var idx1 in data["vectors"]) {
-                if (data["vectors"].hasOwnProperty(idx1)) {
+            for (var idx1 in data["vecs"]) {
+                if (data["vecs"].hasOwnProperty(idx1)) {
                     var idx1Num = parseInt(idx1, 10);
-                    _this._parent._componentData[idx1Num] = new Float32Array(data["vectors"][idx1Num]);
+                    _this._parent._componentData[idx1Num] = new Float32Array(data["vecs"][idx1Num].map(function (v) { return MathUtils.convertToDecimal(v, precision); }));
                 }
             }
+            console.log(data);
+            debugger;
+            _this.makePDBFromJSON(data);
         }).done(function () {
             callBack();
         }).fail(function () {
@@ -257,6 +261,11 @@ var _IO = /** @class */ (function () {
         }); */
     };
     ;
+    _IO.prototype.makePDBFromJSON = function (data) {
+        console.log(data);
+        console.log(this._parent.getFrameCoors(0));
+        return "";
+    };
     /**
      * Makes a multi-frame PDB file of the simulation. Good for debugging.
      * @returns string The text of the multi-frame PDB file.
@@ -621,5 +630,16 @@ var MathUtils;
         }
     }
     MathUtils.multiplyFloat32ArrayByScalar = multiplyFloat32ArrayByScalar;
+    /**
+     * To safe on space, the JSON file removes decimals. Restore those here
+     * for a given number.
+     * @param  {number} val        The value without a decimal point.
+     * @param  {number} precision  The precision.
+     * @returns number            The value of the number with the decimal point.
+     */
+    function convertToDecimal(val, precision) {
+        return val * Math.pow(10, -precision);
+    }
+    MathUtils.convertToDecimal = convertToDecimal;
 })(MathUtils || (MathUtils = {}));
 window["BrowserSim"] = BrowserSim; // To survive closure compiler.

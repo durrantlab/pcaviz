@@ -239,14 +239,14 @@ class _IO {
     public "loadJSON"(path: string, callBack: any = () => {}): void {
         jQuery.getJSON(path, (data) => {
             // Setup the frames
-            this._parent._numFrames = data["frames"].length;
-            this._parent._frameSize = data["frames"][0].length;
+            this._parent._numFrames = data["coeffs"].length;
+            this._parent._frameSize = data["coeffs"][0].length;
             this._parent._frameData = {};
             this._parent._frameStride = 5;  // TODO: SHOULD BE USER DEFINED.
 
             // Set up the components
-            this._parent._numComponents = data["vectors"].length;
-            this._parent._componentSize = data["vectors"][0].length;
+            this._parent._numComponents = data["vecs"].length;
+            this._parent._componentSize = data["vecs"][0].length;
             this._parent._componentData = []
 
             // Here you will put the average positions, but not ready yet.
@@ -263,11 +263,14 @@ class _IO {
             }
 
             // Convert frames to array of typed arrays. It's faster.
-            for (let idx1 in data["frames"]) {
-                if (data["frames"].hasOwnProperty(idx1)) {
+            let precision = data["params"]["precision"];
+            for (let idx1 in data["coeffs"]) {
+                if (data["coeffs"].hasOwnProperty(idx1)) {
                     let idx1Num = parseInt(idx1, 10);
                     this._parent._frameData[idx1Num * this._parent._frameStride] = new Float32Array(
-                        data["frames"][idx1Num]
+                        data["coeffs"][idx1Num].map(
+                            v => MathUtils.convertToDecimal(v, precision)
+                        )
                     );
                 }
             }
@@ -275,7 +278,7 @@ class _IO {
             // Now go through and fill in the ones inbetween the explicitly
             // specified frames (with interpolation). Doing linear
             // interpolation for simplicity (rather than spline, for example).
-            for (let frameIdx = 0; frameIdx < data["frames"].length * this._parent._frameStride; frameIdx++) {
+            for (let frameIdx = 0; frameIdx < data["coeffs"].length * this._parent._frameStride; frameIdx++) {
                 if (this._parent._frameData[frameIdx] === undefined) {
                     // This frame isn't defined.
 
@@ -316,12 +319,19 @@ class _IO {
             }
 
             // Same with vectors.
-            for (let idx1 in data["vectors"]) {
-                if (data["vectors"].hasOwnProperty(idx1)) {
+            for (let idx1 in data["vecs"]) {
+                if (data["vecs"].hasOwnProperty(idx1)) {
                     let idx1Num = parseInt(idx1, 10);
-                    this._parent._componentData[idx1Num] = new Float32Array(data["vectors"][idx1Num]);
+                    this._parent._componentData[idx1Num] = new Float32Array(
+                        data["vecs"][idx1Num].map(
+                            v => MathUtils.convertToDecimal(v, precision)
+                        )
+                    );
                 }
             }
+
+***
+            this.makePDBFromJSON(data);
         }).done(() => {
             callBack();
         }).fail(() => {
@@ -330,6 +340,12 @@ class _IO {
             console.log( "complete" );
         }); */
     };
+
+    private makePDBFromJSON(data): string {
+        console.log(data);
+        console.log(this._parent.getFrameCoors(0));
+        return "";
+    }
 
     /**
      * Makes a multi-frame PDB file of the simulation. Good for debugging.
@@ -738,6 +754,18 @@ module MathUtils {
             default:
                 return float32Array.map(v => scalar * v);
         }
+    }
+
+
+    /**
+     * To safe on space, the JSON file removes decimals. Restore those here
+     * for a given number.
+     * @param  {number} val        The value without a decimal point.
+     * @param  {number} precision  The precision.
+     * @returns number            The value of the number with the decimal point.
+     */
+    export function convertToDecimal(val: number, precision: number): number {
+        return val * Math.pow(10, -precision);
     }
 }
 
