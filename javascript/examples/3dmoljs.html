@@ -45,12 +45,15 @@
                         durationInMilliseconds: 10000,
                         updateFreqInMilliseconds: 16.67,  // 60 fps
                         loop: true,
-                        windowAverageSize: 10,
-                        caching: "pre"
+                        windowAverageSize: 25
                     });
+
                     setTimeout(() => {
-                        viewer.zoomTo();
-                    }, 1000);
+                        browserSim.player.stop();
+                        setTimeout(() => {
+                            browserSim.player.toFrame(159);
+                        }, 1000);
+                    }, 5000);
                 });
             }
             makeBrowserSim(viewer, '3DMOLJS');

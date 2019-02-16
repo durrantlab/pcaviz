@@ -343,6 +343,9 @@ class _IO {
 
             // Set up the average positions.
             this._loadJSONSetupAveragePos(data, precisionFactor);
+
+            // Add a PDB file from the JSON data.
+            this._makePDBFromJSON(data);
         }).done(() => {
             callBack();
         }).fail(() => {
@@ -455,10 +458,18 @@ class _IO {
         );
     }
 
-    private makePDBFromJSON(data): string {
-        console.log(data);
-        console.log(this._parent.getFrameCoors(0));
-        return "";
+    private _makePDBFromJSON(data: any) {
+        let res_info = data["res_info"];
+        let curResid = 0;
+        let curResName = "";
+        for (let idx in res_info) {
+            if (res_info.hasOwnProperty(idx)) {
+                let v = res_info[idx];
+                typeof(t)
+                console.log(v);
+            }
+        }
+
     }
 
     /**
@@ -873,18 +884,6 @@ module MathUtils {
             default:
                 return float32Array.map(v => scalar * v);
         }
-    }
-
-
-    /**
-     * To safe on space, the JSON file removes decimals. Restore those here
-     * for a given number.
-     * @param  {number} val        The value without a decimal point.
-     * @param  {number} precision  The precision.
-     * @returns number            The value of the number with the decimal point.
-     */
-    export function convertToDecimal(val: number, precision: number): number {
-        return val * Math.pow(10, -precision);
     }
 }
 
