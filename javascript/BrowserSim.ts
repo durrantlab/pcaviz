@@ -343,9 +343,6 @@ class _IO {
 
             // Set up the average positions.
             this._loadJSONSetupAveragePos(data, precisionFactor);
-
-            // Add a PDB file from the JSON data.
-            this._makePDBFromJSON(data);
         }).done(() => {
             callBack();
         }).fail(() => {
@@ -456,20 +453,6 @@ class _IO {
         this._parent._averagePositions = new Float32Array(
             data["coors"].map(v => precisionFactor * v)
         );
-    }
-
-    private _makePDBFromJSON(data: any) {
-        let res_info = data["res_info"];
-        let curResid = 0;
-        let curResName = "";
-        for (let idx in res_info) {
-            if (res_info.hasOwnProperty(idx)) {
-                let v = res_info[idx];
-                typeof(t)
-                console.log(v);
-            }
-        }
-
     }
 
     /**

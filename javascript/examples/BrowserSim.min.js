@@ -272,8 +272,6 @@ var _IO = /** @class */ (function () {
             _this._loadJSONSetupPCAComponents(data, precisionFactor);
             // Set up the average positions.
             _this._loadJSONSetupAveragePos(data, precisionFactor);
-            // Add a PDB file from the JSON data.
-            _this._makePDBFromJSON(data);
         }).done(function () {
             callBack();
         }).fail(function () {
@@ -365,15 +363,6 @@ var _IO = /** @class */ (function () {
     _IO.prototype._loadJSONSetupAveragePos = function (data, precisionFactor) {
         // Make the average coordinates, converting them from int to float.
         this._parent._averagePositions = new Float32Array(data["coors"].map(function (v) { return precisionFactor * v; }));
-    };
-    _IO.prototype._makePDBFromJSON = function (data) {
-        var res_info = data["res_info"];
-        for (var idx in res_info) {
-            if (res_info.hasOwnProperty(idx)) {
-                var v = res_info[idx];
-                console.log(v);
-            }
-        }
     };
     /**
      * Makes a multi-frame PDB file of the simulation. Good for debugging.
