@@ -455,6 +455,12 @@ class _IO {
         );
     }
 
+    private makePDBFromJSON(data): string {
+        console.log(data);
+        console.log(this._parent.getFrameCoors(0));
+        return "";
+    }
+
     /**
      * Makes a multi-frame PDB file of the simulation. Good for debugging.
      * @returns string The text of the multi-frame PDB file.
@@ -867,6 +873,18 @@ module MathUtils {
             default:
                 return float32Array.map(v => scalar * v);
         }
+    }
+
+
+    /**
+     * To safe on space, the JSON file removes decimals. Restore those here
+     * for a given number.
+     * @param  {number} val        The value without a decimal point.
+     * @param  {number} precision  The precision.
+     * @returns number            The value of the number with the decimal point.
+     */
+    export function convertToDecimal(val: number, precision: number): number {
+        return val * Math.pow(10, -precision);
     }
 }
 

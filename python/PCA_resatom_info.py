@@ -31,33 +31,55 @@ def get_PCA_trajectory(traj, selection, cum_var):
 
     :returns: The coordinates of the average atomic positions of selection in traj in XYZ space.
     :rtype: :class:'ndarray'
+
+    :returns: The atom type and number of the selection in traj.
+    :rtype :class:'list'
+
+    :returns: The residue number and name of the selection in traj.
+    :rtype :class:'list'
     """
 
     # Calculate principal components and variation of specific atom selection.
     get_trajectory_pca = pca.PCA(traj, selection)
     pca_space = get_trajectory_pca.run()
 
-    # Calculate how many components are required to cumulatively explain desired variance.
+    # Access the components themselves.
+    pca_vectors = pca_space.p_components
+
+    # Calculate how many components are required to cumulatively explain
+    # desired variance.
     n_pcs = np.where(get_trajectory_pca.cumulated_variance > cum_var)[0][0]
 
     # Only select atoms of interest.
     atomgroup = traj.select_atoms(selection)
+    #data_json will contain residue/atom info for user selection
+    data_json = []
+    # loops over atom information turns the atom name, residue name, and resid
+    # into a string
+
+    for a in atomgroup:
+        at_name = str(a.name)
+        res_name = str(a.resname)
+        res_id = str(a.resid)
+        # if statement will check to see if residue id is present if it's not
+        # present it will add the residue id, residue name, and the residue's
+        # atoms
+        if [res_id, res_name] not in data_json:
+            data_json.append([res_id, res_name])
+            data_json.append(at_name)
+        elif [res_id, res_name] in data_json:
+            data_json.append(at_name)
+
 
     # Get average atomic coordinates.
-    coords_getter = AnalysisFromFunction(lambda ag: ag.positions.copy(), atomgroup)
-    coords_avg_atoms = (coords_getter.run().results).mean(axis=0)
+    coords_avg_atoms = traj.trajectory.timeseries(asel=atomgroup).mean(axis=1)
 
     # And project onto the principal components.
     coords_project_onto_pca_space = get_trajectory_pca.transform(atomgroup,n_components=n_pcs)
 
-    # Retrieve the vectors themselves.
-    pca_vectors = get_trajectory_pca.p_components[:n_pcs]
 
-    print(pca_vectors.shape)
-    print(coords_project_onto_pca_space.shape)
-    print(coords_avg_atoms.shape)
     # Return only the information necessary for compression and expansion.
-    return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms
+    return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, data_json
 
 # Main function.
 if __name__ == '__main__':
@@ -83,17 +105,23 @@ if __name__ == '__main__':
                                          format=MemoryReader)
 
     # Calculate trajectory on principal components and retrieve PCA information
-    vect_components, PCA_coeff, coords_avg_atoms = get_PCA_trajectory(traj,
-                                                                      params['selection'],
-                                                                      params['cum_var'])
+    vect_components, PCA_coeff, coords_avg_atoms, data_json_info = get_PCA_trajectory(
+        traj, params['selection'], params['cum_var']
+    )
+
+    #### JDD ADDITION:
+    # Keep only the save number of top vect_components as the number of PCA_coeff
+    vect_components = vect_components[:len(PCA_coeff[0])]
 
     # Compress information further by rounding and converting to ints.
     # Save to dictionary to be outputted as a json.
+
     my_dict = {}
     my_dict['vecs'] = _Utils.compress_list(vect_components, num_decimals)
     my_dict['coeffs'] = _Utils.compress_list(PCA_coeff, num_decimals)
     my_dict['coors'] = _Utils.compress_list(coords_avg_atoms, num_decimals, is_coor=True)
     my_dict['params'] = params
+    my_dict['res_info'] = data_json_info
 
     # Write final json file.
     json_txt = json.dumps(my_dict) # , sort_keys=True, indent=4)

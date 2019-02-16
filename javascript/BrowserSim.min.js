@@ -8,8 +8,7 @@ var BrowserSim = /** @class */ (function () {
         // Note that the below are public so they can be accessed from other
         // classes. But they are not public to the user and so do not need to be
         // protected from closure compiler.
-        this._numFramesInJSON = 0;
-        this._numFramesTotal = 0; // _numFramesInJSON * _frameStride.
+        this._numFrames = 0;
         this._frameSize = 0;
         // Keys are frame indecies. Values are Float32Arrays with the
         // coefficients.
@@ -20,7 +19,6 @@ var BrowserSim = /** @class */ (function () {
         this._componentData = [];
         this._averagePositions = undefined;
         this._params = {};
-        this._cachedFrameCoors = {};
         this["io"] = new _IO(this); // This way so it survives closure compiler.
         this.updateParams(params);
         // Note that viewer provides a common interface for several
@@ -55,10 +53,8 @@ var BrowserSim = /** @class */ (function () {
             "viewer": undefined,
             "viewerType": undefined,
             "durationInMilliseconds": 10000,
-            "updateFreqInMilliseconds": 16.67,
+            "updateFreqInMilliseconds": 10,
             "loop": true,
-            "caching": "none",
-            "cacheModeNum": 0,
             "windowAverageSize": 1,
             "parent": this,
             "loadPDBTxt": function (pdbTxt, viewer, browserSim) {
@@ -118,39 +114,6 @@ var BrowserSim = /** @class */ (function () {
                     break;
             }
         }
-        // Modify the updateFreqInMilliseconds parameter so FPS always <= 60
-        // (browser limitation anyway).
-        var fpsSixtyUpdateFreqInMilliseconds = 1000.0 / 60.0;
-        if (this._params["updateFreqInMilliseconds"] < fpsSixtyUpdateFreqInMilliseconds) {
-            this._params["updateFreqInMilliseconds"] = fpsSixtyUpdateFreqInMilliseconds;
-        }
-        // Slow playing animations may not be able to maintain even that FPS.
-        // If the number of frames is available, further modify if necessary.
-        if (this._numFramesInJSON > 0) {
-            // Note that there are 0 frames by default. So if 0, there is no
-            // frame data yet.
-            var fpsPerSim = this._params["durationInMilliseconds"] / this._numFramesTotal;
-            if (this._params["updateFreqInMilliseconds"] < fpsPerSim) {
-                this._params["updateFreqInMilliseconds"] = fpsPerSim;
-            }
-        }
-        // Set the cacheModeNum based on the caching
-        switch (this._params["caching"]) {
-            case "none":
-                this._params["cacheModeNum"] = 0;
-                break;
-            case "continuous":
-                this._params["cacheModeNum"] = 1;
-                break;
-            case "pre":
-                this._params["cacheModeNum"] = 2;
-                break;
-            default:
-                throw new Error("Invalid caching value: " + this._params["caching"] + ". Valid " +
-                    "values are \"none\", \"continuous\", and \"pre\".");
-        }
-        // Pre-cache if necessary.
-        this.cacheAllFrameCoorsIfNeeded();
     };
     /**
      * Get the frame coordinates.
@@ -160,75 +123,45 @@ var BrowserSim = /** @class */ (function () {
      */
     BrowserSim.prototype.getFrameCoors = function (frame) {
         var _this = this;
-        var coors = undefined;
-        // console.log(this._params["cacheModeNum"], this._cachedFrameCoors, frame, this._cachedFrameCoors[frame]);
-        if ((this._params["cacheModeNum"] === 0) || (this._cachedFrameCoors[frame] === undefined)) {
-            // So either cache is not turned on (none), or there's no cached
-            // data for this frame.
-            // Consider multiple frames if necessary.
-            var framesToAvg = MathUtils._range(frame - this._params["halfWindowSize"], frame + this._params["halfWindowSize"] + 1);
-            // Get the coefficients for each of those frames (an array of
-            // Float32Array's)
-            var framesCoefficients = framesToAvg.map(function (frameIdx) {
-                // Make sure frame never out of bounds.
-                if (frameIdx < 0) {
-                    frameIdx += _this._numFramesTotal;
-                }
-                frameIdx = frameIdx % _this._numFramesTotal;
-                // Get the frame data (PCA coefficients).
-                return _this._frameData[frameIdx];
+        // Consider multiple frames if necessary.
+        var framesToAvg = MathUtils._range(frame - this._params["halfWindowSize"], frame + this._params["halfWindowSize"] + 1);
+        // Get the coefficients for each of those frames (an array of
+        // Float32Array's)
+        var framesCoefficients = framesToAvg.map(function (frameIdx) {
+            // Make sure frame never out of bounds.
+            if (frameIdx < 0) {
+                frameIdx += _this._numFrames;
+            }
+            frameIdx = frameIdx % _this._numFrames;
+            // Get the frame data (PCA coefficients).
+            return _this._frameData[frameIdx];
+        });
+        // Get the flattened coordinates for the frames (i.e., coordinates not
+        // separated into triplets).
+        var coorsFlattenedForFrames = framesCoefficients.map(function (frameCoefficients) {
+            // frameCoefficients is a Float32Array containing all the
+            // coefficients for a given frame. Need to multiple those by the
+            // corresponding components.
+            var multipledComponents = _this._componentData.map(function (component, componentIdx) {
+                return MathUtils.multiplyFloat32ArrayByScalar(frameCoefficients[componentIdx], component);
             });
-            // Get the flattened coordinates for the frames (i.e., coordinates not
-            // separated into triplets).
-            var coorsFlattenedForFrames = framesCoefficients.map(function (frameCoefficients) {
-                // frameCoefficients is a Float32Array containing all the
-                // coefficients for a given frame. Need to multiple those by the
-                // corresponding components.
-                var multipledComponents = _this._componentData.map(function (component, componentIdx) {
-                    return MathUtils.multiplyFloat32ArrayByScalar(frameCoefficients[componentIdx], component);
-                });
-                var summedMultipledComponents = MathUtils.sumArrayOfFloat32Arrays(multipledComponents);
-                return summedMultipledComponents;
-            });
-            // Now average the flattened coordinates over the frame windowe.
-            var summedCoorsOverFrames = coorsFlattenedForFrames.reduce(function (summedCoors, newCoors) {
-                return MathUtils.sumArrayOfFloat32Arrays([summedCoors, newCoors]);
-            });
-            var fac = 1.0 / framesToAvg.length;
-            var averageCoorsOverFrames_1 = MathUtils.multiplyFloat32ArrayByScalar(fac, summedCoorsOverFrames);
-            // Add in the average coordinates from the JSON data.
-            averageCoorsOverFrames_1 = MathUtils.sumArrayOfFloat32Arrays([
-                averageCoorsOverFrames_1, this._averagePositions
+            var summedMultipledComponents = MathUtils.sumArrayOfFloat32Arrays(multipledComponents);
+            return summedMultipledComponents;
+        });
+        // Now average the flattened coordinates over the frames.
+        var summedCoorsOverFrames = coorsFlattenedForFrames.reduce(function (summedCoors, newCoors) {
+            return MathUtils.sumArrayOfFloat32Arrays([summedCoors, newCoors]);
+        });
+        var averageCoorsOverFrames = MathUtils.multiplyFloat32ArrayByScalar(1.0 / framesToAvg.length, summedCoorsOverFrames);
+        // Reshape the averaged coordinates into a list of Float32Array triplets.
+        var coors = MathUtils._range(0, this._componentSize / 3).map(function (i) {
+            return new Float32Array([
+                averageCoorsOverFrames[i],
+                averageCoorsOverFrames[i + 1],
+                averageCoorsOverFrames[i + 2]
             ]);
-            // Reshape the averaged coordinates into a list of Float32Array triplets.
-            coors = MathUtils._range(0, this._componentSize / 3).map(function (i) {
-                var three_i = 3 * i;
-                return new Float32Array([
-                    averageCoorsOverFrames_1[three_i],
-                    averageCoorsOverFrames_1[three_i + 1],
-                    averageCoorsOverFrames_1[three_i + 2]
-                ]);
-            });
-            if (this._params["cacheModeNum"] > 0) {
-                this._cachedFrameCoors[frame] = coors;
-            }
-        }
-        else {
-            // Get the cached version.
-            coors = this._cachedFrameCoors[frame];
-            // console.log("cached");
-        }
+        });
         return coors;
-    };
-    BrowserSim.prototype.cacheAllFrameCoorsIfNeeded = function () {
-        // If the user has requested pre-caching, load all frames now.
-        if (this._params["cacheModeNum"] === 2) {
-            this._cachedFrameCoors = {}; // Reset everything.
-            for (var frameIdx = 0; frameIdx < this._numFramesTotal; frameIdx++) {
-                console.log("Caching frame", frameIdx);
-                this.getFrameCoors(frameIdx);
-            }
-        }
     };
     return BrowserSim;
 }());
@@ -252,9 +185,17 @@ var _IO = /** @class */ (function () {
         var _this = this;
         if (callBack === void 0) { callBack = function () { }; }
         jQuery.getJSON(path, function (data) {
-            // Get some general info about the data.
+            // Setup the frames
+            _this._parent._numFrames = data["coeffs"].length;
             _this._parent._frameSize = data["coeffs"][0].length;
+            _this._parent._frameData = {};
+            _this._parent._frameStride = 5; // TODO: SHOULD BE USER DEFINED.
+            // Set up the components
             _this._parent._numComponents = data["vecs"].length;
+            _this._parent._componentSize = data["vecs"][0].length;
+            _this._parent._componentData = [];
+            // Here you will put the average positions, but not ready yet.
+            _this._parent._averagePositions = new Float32Array(_this._parent._numComponents * _this._parent._componentSize);
             // The length of the frame coefficients must equal the number of
             // components.
             if (_this._parent._frameSize !== _this._parent._numComponents) {
@@ -262,16 +203,55 @@ var _IO = /** @class */ (function () {
                     ("(" + _this._parent._frameSize + ") is not the same") +
                     ("as the number of components (" + _this._parent._numComponents + ")"));
             }
-            // Get the precision of the data (used to eliminate decimal points
-            // from the JSON file).
+            // Convert frames to array of typed arrays. It's faster.
             var precision = data["params"]["precision"];
-            var precisionFactor = Math.pow(10, -precision);
-            // Set up the frames
-            _this._loadJSONSetupFrameCoeffs(data, precisionFactor);
-            // Set up the components
-            _this._loadJSONSetupPCAComponents(data, precisionFactor);
-            // Set up the average positions.
-            _this._loadJSONSetupAveragePos(data, precisionFactor);
+            for (var idx1 in data["coeffs"]) {
+                if (data["coeffs"].hasOwnProperty(idx1)) {
+                    var idx1Num = parseInt(idx1, 10);
+                    _this._parent._frameData[idx1Num * _this._parent._frameStride] = new Float32Array(data["coeffs"][idx1Num].map(function (v) { return MathUtils.convertToDecimal(v, precision); }));
+                }
+            }
+            // Now go through and fill in the ones inbetween the explicitly
+            // specified frames (with interpolation). Doing linear
+            // interpolation for simplicity (rather than spline, for example).
+            for (var frameIdx = 0; frameIdx < data["coeffs"].length * _this._parent._frameStride; frameIdx++) {
+                if (_this._parent._frameData[frameIdx] === undefined) {
+                    // This frame isn't defined.
+                    // Get the previous defined frame.
+                    var beforeFrame = _this._parent._frameStride * Math.floor(frameIdx / _this._parent._frameStride);
+                    // Get the next defined frame.
+                    var afterFrame = beforeFrame + _this._parent._frameStride;
+                    // If either doesn't exist, go to the next one.
+                    if ((_this._parent._frameData[beforeFrame] === undefined) ||
+                        (_this._parent._frameData[afterFrame] === undefined)) {
+                        continue;
+                    }
+                    // Get the ratio to interpolate (linear).
+                    var ratio = (frameIdx - beforeFrame) / _this._parent._frameStride;
+                    // Get the difference between the two vectors.
+                    var delta = MathUtils.sumArrayOfFloat32Arrays([
+                        _this._parent._frameData[beforeFrame],
+                        MathUtils.multiplyFloat32ArrayByScalar(-1.0, _this._parent._frameData[afterFrame])
+                    ]);
+                    // Calculate the coefficients of the undefined frame.
+                    var newFrame = MathUtils.sumArrayOfFloat32Arrays([
+                        _this._parent._frameData[beforeFrame],
+                        MathUtils.multiplyFloat32ArrayByScalar(ratio, delta)
+                    ]);
+                    // Save it to the object.
+                    _this._parent._frameData[frameIdx] = newFrame;
+                }
+            }
+            // Same with vectors.
+            for (var idx1 in data["vecs"]) {
+                if (data["vecs"].hasOwnProperty(idx1)) {
+                    var idx1Num = parseInt(idx1, 10);
+                    _this._parent._componentData[idx1Num] = new Float32Array(data["vecs"][idx1Num].map(function (v) { return MathUtils.convertToDecimal(v, precision); }));
+                }
+            }
+            console.log(data);
+            debugger;
+            _this.makePDBFromJSON(data);
         }).done(function () {
             callBack();
         }).fail(function () {
@@ -281,88 +261,10 @@ var _IO = /** @class */ (function () {
         }); */
     };
     ;
-    _IO.prototype._loadJSONSetupFrameCoeffs = function (data, precisionFactor) {
-        // Setup the frames
-        this._parent._numFramesInJSON = data["coeffs"].length;
-        this._parent._frameData = {}; // Keys will be frame indexes,
-        // values will be Float32Array
-        // containing the PCA coefficients
-        // for the corresponding frame.
-        this._parent._frameStride = data["params"]["stride"];
-        this._parent._numFramesTotal = this._parent._numFramesInJSON * this._parent._frameStride;
-        // Convert frames to array of typed arrays. It's faster.
-        for (var idx1 in data["coeffs"]) {
-            if (data["coeffs"].hasOwnProperty(idx1)) {
-                var idx1Num = parseInt(idx1, 10);
-                this._parent._frameData[idx1Num * this._parent._frameStride] = new Float32Array(data["coeffs"][idx1Num]);
-            }
-        }
-        // The coefficients need to be converted from int to floats.
-        for (var idx1 in this._parent._frameData) {
-            if (this._parent._frameData.hasOwnProperty(idx1)) {
-                this._parent._frameData[idx1] = this._parent._frameData[idx1].map(function (v) { return precisionFactor * v; });
-            }
-        }
-        // Now go through and fill in the ones inbetween the explicitly
-        // specified frames (with interpolation). Doing linear interpolation
-        // for simplicity (rather than spline, for example).
-        var numExistingFrameData = Object.keys(this._parent._frameData).length;
-        var numFrames = numExistingFrameData * this._parent._frameStride;
-        var beforeFrameIdx = undefined;
-        var afterFrameIdx = undefined;
-        var deltaDefinedFrames = undefined;
-        for (var frameIdx = 0; frameIdx < numFrames; frameIdx++) {
-            if (this._parent._frameData[frameIdx] !== undefined) {
-                // This frame is defined.
-                // Save this as the previous defined frame.
-                beforeFrameIdx = frameIdx;
-                // Save the next defined frame.
-                afterFrameIdx = frameIdx + this._parent._frameStride;
-                // Get the difference between the two frame vectors.
-                if (this._parent._frameData[afterFrameIdx] !== undefined) {
-                    // So if it isn't defined, keep previously caluclated
-                    // deltas. Typically affects the end of the sim.
-                    deltaDefinedFrames = MathUtils.sumArrayOfFloat32Arrays([
-                        this._parent._frameData[afterFrameIdx],
-                        MathUtils.multiplyFloat32ArrayByScalar(-1.0, this._parent._frameData[beforeFrameIdx])
-                    ]);
-                }
-            }
-            else {
-                // Get the ratio to interpolate (linear).
-                var ratio = (frameIdx - beforeFrameIdx) / this._parent._frameStride;
-                // Calculate the coefficients of the undefined frame.
-                var newFrame = MathUtils.sumArrayOfFloat32Arrays([
-                    this._parent._frameData[beforeFrameIdx],
-                    MathUtils.multiplyFloat32ArrayByScalar(ratio, deltaDefinedFrames)
-                ]);
-                // Save it to the object.
-                this._parent._frameData[frameIdx] = newFrame;
-            }
-        }
-    };
-    _IO.prototype._loadJSONSetupPCAComponents = function (data, precisionFactor) {
-        // Set up the components
-        this._parent._componentSize = data["vecs"][0].length;
-        this._parent._componentData = [];
-        // Same with vectors.
-        for (var idx1 in data["vecs"]) {
-            if (data["vecs"].hasOwnProperty(idx1)) {
-                var idx1Num = parseInt(idx1, 10);
-                this._parent._componentData[idx1Num] = new Float32Array(data["vecs"][idx1Num]);
-            }
-        }
-        // The vectors need to be converted from int to floats.
-        for (var idx1 in this._parent._componentData) {
-            if (this._parent._componentData.hasOwnProperty(idx1)) {
-                var idxNum = parseInt(idx1, 10);
-                this._parent._componentData[idxNum] = this._parent._componentData[idxNum].map(function (v) { return precisionFactor * v; });
-            }
-        }
-    };
-    _IO.prototype._loadJSONSetupAveragePos = function (data, precisionFactor) {
-        // Make the average coordinates, converting them from int to float.
-        this._parent._averagePositions = new Float32Array(data["coors"].map(function (v) { return precisionFactor * v; }));
+    _IO.prototype.makePDBFromJSON = function (data) {
+        console.log(data);
+        console.log(this._parent.getFrameCoors(0));
+        return "";
     };
     /**
      * Makes a multi-frame PDB file of the simulation. Good for debugging.
@@ -371,7 +273,7 @@ var _IO = /** @class */ (function () {
     _IO.prototype["makePDB"] = function () {
         var numAtoms = this._parent._componentSize / 3;
         var pdbTxt = "";
-        for (var frameIdx = 0; frameIdx < this._parent._numFramesTotal; frameIdx++) {
+        for (var frameIdx = 0; frameIdx < this._parent._numFrames; frameIdx++) {
             pdbTxt += "MODEL " + frameIdx.toString() + "\n";
             for (var atomIdx = 0; atomIdx < numAtoms; atomIdx++) {
                 var coor = this._parent.getAtomCoors(frameIdx, atomIdx);
@@ -499,11 +401,11 @@ var _Viewer = /** @class */ (function () {
     _Viewer.prototype._3DMolJS_UpdateAtomPos = function (frame) {
         var newAtomCoors = this._parent.getFrameCoors(frame);
         var atoms = this._model.selectedAtoms({});
-        var arrLen = atoms.length;
-        for (var atomIdx = 0; atomIdx < arrLen; atomIdx++) {
-            atoms[atomIdx]["x"] = newAtomCoors[atomIdx][0];
-            atoms[atomIdx]["y"] = newAtomCoors[atomIdx][1];
-            atoms[atomIdx]["z"] = newAtomCoors[atomIdx][2];
+        for (var atomIdx = 0; atomIdx < atoms.length; atomIdx++) {
+            var coors = newAtomCoors[atomIdx];
+            atoms[atomIdx]["x"] = coors[0];
+            atoms[atomIdx]["y"] = coors[1];
+            atoms[atomIdx]["z"] = coors[2];
         }
     };
     /**
@@ -535,9 +437,10 @@ var _Viewer = /** @class */ (function () {
         var newAtomCoors = this._parent.getFrameCoors(frame);
         var atomIdx = 0;
         this._model["structure"]["eachAtom"](function (atom, idx) {
-            atom["x"] = newAtomCoors[atomIdx][0];
-            atom["y"] = newAtomCoors[atomIdx][1];
-            atom["z"] = newAtomCoors[atomIdx][2];
+            var coors = newAtomCoors[atomIdx];
+            atom["x"] = coors[0];
+            atom["y"] = coors[1];
+            atom["z"] = coors[2];
             atomIdx++;
         });
     };
@@ -565,7 +468,8 @@ var _Viewer = /** @class */ (function () {
         var newAtomCoors = this._parent.getFrameCoors(frame);
         var atomIdx = 0;
         this._model["eachAtom"](function (atom, idx) {
-            atom["_bV"] = newAtomCoors[atomIdx];
+            var coors = newAtomCoors[atomIdx];
+            atom["_bV"] = coors;
             atomIdx++;
         });
     };
@@ -613,7 +517,8 @@ var _Player = /** @class */ (function () {
      * @param  {*} parent The parent class (BrowserSim Object).
      */
     function _Player(parent) {
-        this._animationFrameID = undefined;
+        this._startTime = undefined;
+        this._timer = undefined;
         this._parent = undefined;
         this._parent = parent;
     }
@@ -624,50 +529,38 @@ var _Player = /** @class */ (function () {
      */
     _Player.prototype["start"] = function (params) {
         var _this = this;
+        // loop: boolean = true, windowAverageSize: number = 1) {
+        this._startTime = new Date().getTime();
         // Allow the user to change some of the parameters on start. So
         // duration doesn't always have to be fixed, for example.
         this._parent.updateParams(params);
-        // Clear previous requestAnimationFrames.
-        if (this._animationFrameID !== undefined) {
-            cancelAnimationFrame(this._animationFrameID);
+        // Clear previous intervals.
+        if (this._timer !== undefined) {
+            clearInterval(this._timer);
         }
-        /**
-         * The loop function.
-         * @param  {number} timestamp The number of milliseconds since the
-         * requestAnimationFrame started.
-         */
-        var timestampLastFire = 0;
-        var loop = function (timestamp) {
-            var msSinceLastFire = timestamp - timestampLastFire;
-            // Enough time has passed that we should update.
-            if (msSinceLastFire > _this._parent._params["updateFreqInMilliseconds"]) {
-                // Save the new timestampLastFire value.
-                timestampLastFire = timestamp;
-                // How far along the animation are you?
-                var playRatio = (timestamp / _this._parent._params["durationInMilliseconds"]) % 1.0;
-                // If you've gone over the end of the animation, start again from
-                // the beginning.
-                if ((!_this._parent._params["loop"]) && (playRatio > 1.0)) {
-                    _this["stop"]();
-                    return;
-                }
-                // Get the current frame.
-                var curFrame = Math.floor(_this._parent._numFramesTotal * playRatio);
-                _this._parent["viewer"].updateAtomPos(curFrame);
+        this._timer = setInterval(function () {
+            // How far along the animation are you?
+            var curTime = new Date().getTime();
+            var playRatio = (curTime - _this._startTime) / _this._parent._params["durationInMilliseconds"];
+            // If you've gone over the end of the animation, start again from
+            // the beginning.
+            if ((!_this._parent._params["loop"]) && (playRatio > 1.0)) {
+                _this["stop"]();
+                return;
             }
-            // Start the next iteration.
-            requestAnimationFrame(loop);
-        };
-        this._animationFrameID = requestAnimationFrame(loop);
+            // Get the current frame.
+            var curFrame = Math.floor(_this._parent._numFrames * playRatio);
+            _this._parent["viewer"].updateAtomPos(curFrame);
+        }, this._parent._params["updateFreqInMilliseconds"]);
     };
     /**
      * Stops the simulation animation.
      * @returns void
      */
     _Player.prototype["stop"] = function () {
-        // Clear previous requestAnimationFrames.
-        if (this._animationFrameID !== undefined) {
-            cancelAnimationFrame(this._animationFrameID);
+        // Clear previous intervals.
+        if (this._timer !== undefined) {
+            clearInterval(this._timer);
         }
     };
     /**
@@ -737,33 +630,16 @@ var MathUtils;
         }
     }
     MathUtils.multiplyFloat32ArrayByScalar = multiplyFloat32ArrayByScalar;
-})(MathUtils || (MathUtils = {}));
-// Polyfill requestAnimationFrame
-// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
-// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
-// MIT license
-(function () {
-    var lastTime = 0;
-    var vendors = ['ms', 'moz', 'webkit', 'o'];
-    for (var x = 0; x < vendors.length && !window["requestAnimationFrame"]; ++x) {
-        window["requestAnimationFrame"] = window[vendors[x] + 'RequestAnimationFrame'];
-        window["cancelAnimationFrame"] = window[vendors[x] + 'CancelAnimationFrame']
-            || window[vendors[x] + 'CancelRequestAnimationFrame'];
+    /**
+     * To safe on space, the JSON file removes decimals. Restore those here
+     * for a given number.
+     * @param  {number} val        The value without a decimal point.
+     * @param  {number} precision  The precision.
+     * @returns number            The value of the number with the decimal point.
+     */
+    function convertToDecimal(val, precision) {
+        return val * Math.pow(10, -precision);
     }
-    if (!window["requestAnimationFrame"])
-        window["requestAnimationFrame"] = function (callback, element) {
-            var currTime = new Date().getTime();
-            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function () {
-                callback(currTime + timeToCall);
-            }, timeToCall);
-            lastTime = currTime + timeToCall;
-            return id;
-        };
-    if (!window["cancelAnimationFrame"])
-        window["cancelAnimationFrame"] = function (id) {
-            clearTimeout(id);
-        };
-}());
+    MathUtils.convertToDecimal = convertToDecimal;
+})(MathUtils || (MathUtils = {}));
 window["BrowserSim"] = BrowserSim; // To survive closure compiler.
