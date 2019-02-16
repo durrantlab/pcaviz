@@ -58,8 +58,6 @@ def demo_HTML(page):
                     windowAverageSize: 1,""" + extra_browser_sim_params + """
                 });
 
-                browserSim.viewer.addPDBTxt(testPDB);
-
                 browserSim.io.loadJSON("data.json", () => {
                     browserSim.player.start({
                         durationInMilliseconds: 10000,
@@ -101,7 +99,8 @@ pages = [
             '<script src="http://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>'
         ],
         "3DMOLJS",
-        "{sphere: {color: 'green'}},"
+        "{cartoon:{}, stick:{radius:.5,colorscheme:'Jmol'}},"
+        # "{sphere: {colorscheme: 'Jmol'}},"
     ),
     Page("3DMol.js Generic Mode", "3dmoljs_generic.html", [
             "let element = jQuery('#viscontainer');",

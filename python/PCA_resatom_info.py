@@ -57,26 +57,29 @@ def get_PCA_trajectory(traj, selection, cum_var):
     # loops over atom information turns the atom name, residue name, and resid
     # into a string
 
+    # JDD Some changes here to examine.
+    res_id_name_already_seen = set([])
     for a in atomgroup:
         at_name = str(a.name)
         res_name = str(a.resname)
-        res_id = str(a.resid)
-        # if statement will check to see if residue id is present if it's not
+        res_id = int(a.resid)  # JDD change: Keep this as an int.
+        import pdb; pdb.set_trace()
+
+        # If statement will check to see if residue id is present if it's not
         # present it will add the residue id, residue name, and the residue's
         # atoms
-        if [res_id, res_name] not in data_json:
-            data_json.append([res_id, res_name])
+        key = str(res_id) + res_name  # Because list is not hashable.
+        if key not in res_id_name_already_seen:
+            data_json.append([res_id, res_name, at_name])  # JDD change
+            res_id_name_already_seen.add(key)
+        else:
             data_json.append(at_name)
-        elif [res_id, res_name] in data_json:
-            data_json.append(at_name)
-
 
     # Get average atomic coordinates.
     coords_avg_atoms = traj.trajectory.timeseries(asel=atomgroup).mean(axis=1)
 
     # And project onto the principal components.
     coords_project_onto_pca_space = get_trajectory_pca.transform(atomgroup,n_components=n_pcs)
-
 
     # Return only the information necessary for compression and expansion.
     return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, data_json

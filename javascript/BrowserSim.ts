@@ -343,6 +343,9 @@ class _IO {
 
             // Set up the average positions.
             this._loadJSONSetupAveragePos(data, precisionFactor);
+
+            // Create a PDB file from the JSON and load it.
+            this._makePDBFromJSON(data);
         }).done(() => {
             callBack();
         }).fail(() => {
@@ -453,6 +456,49 @@ class _IO {
         this._parent._averagePositions = new Float32Array(
             data["coors"].map(v => precisionFactor * v)
         );
+    }
+
+    private _makePDBFromJSON(data: any) {
+        let res_info = data["res_info"];
+        let curResID = "0";
+        let curResName = "";
+        let pdbTxt = "";
+        for (let idxStr in res_info) {
+            if (res_info.hasOwnProperty(idxStr)) {
+                let idx = parseInt(idxStr, 10);
+
+                let v = res_info[idx];
+                if (typeof(v) !== "string") {
+                    curResID = v[0].toString();
+                    curResName = v[1];
+                    v = v[2];
+                }
+
+                let element = v.substr(0, 2).toUpperCase();
+                if (["CL", "BR", "ZN", "MG", "SE", "FE",
+                     "AL", "MN", "CO", "NI", "CU"].indexOf(element) === -1) {
+                    element = " " + element.substr(0, 1);
+                }
+
+                let coor = [
+                    this._parent._averagePositions[3 * idx],
+                    this._parent._averagePositions[3 * idx + 1],
+                    this._parent._averagePositions[3 * idx + 2],
+                ]
+
+                pdbTxt += "ATOM  " + this._rjust(5, idx.toString()) +
+                          this._rjust(5, v) + this._rjust(4, curResName) +
+                          " X" + this._rjust(4, curResID) + "    " +
+                          this._formatNumForPDB(coor[0]) +
+                          this._formatNumForPDB(coor[1]) +
+                          this._formatNumForPDB(coor[2]) +
+                          "  1.00  0.00          " + element + "  \n";
+                     //   "  1.00  0.00           X  \n";
+
+            }
+        }
+
+        this._parent["viewer"].addPDBTxt(pdbTxt);
     }
 
     /**
