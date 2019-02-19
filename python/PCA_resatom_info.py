@@ -57,20 +57,20 @@ def get_PCA_trajectory(traj, selection, cum_var):
     # loops over atom information turns the atom name, residue name, and resid
     # into a string
 
-    # JDD Some changes here to examine.
+    # Save atom information.
     res_id_name_already_seen = set([])
     for a in atomgroup:
-        at_name = str(a.name)
-        res_name = str(a.resname)
-        res_id = int(a.resid)  # JDD change: Keep this as an int.
-        import pdb; pdb.set_trace()
+        at_name = a.name
+        res_name = a.resname
+        res_chain = a.chain
+        res_id = a.resid
 
         # If statement will check to see if residue id is present if it's not
         # present it will add the residue id, residue name, and the residue's
         # atoms
-        key = str(res_id) + res_name  # Because list is not hashable.
+        key = res_id + res_name + res_chain # Because list is not hashable.
         if key not in res_id_name_already_seen:
-            data_json.append([res_id, res_name, at_name])  # JDD change
+            data_json.append([int(res_id), res_name, at_name, res_chain])
             res_id_name_already_seen.add(key)
         else:
             data_json.append(at_name)
@@ -107,17 +107,18 @@ if __name__ == '__main__':
         traj = traj.load_new(coor[params['starting_frame']::params['stride']],
                                          format=MemoryReader)
 
-    # Calculate trajectory on principal components and retrieve PCA information
+    # Calculate trajectory on principal components and retrieve PCA
+    # information
     vect_components, PCA_coeff, coords_avg_atoms, data_json_info = get_PCA_trajectory(
         traj, params['selection'], params['cum_var']
     )
 
-    #### JDD ADDITION:
-    # Keep only the save number of top vect_components as the number of PCA_coeff
+    # Keep only the save number of top vect_components as the number of
+    # PCA_coeff
     vect_components = vect_components[:len(PCA_coeff[0])]
 
-    # Compress information further by rounding and converting to ints.
-    # Save to dictionary to be outputted as a json.
+    # Compress information further by rounding and converting to ints. Save to
+    # dictionary to be outputted as a json.
 
     my_dict = {}
     my_dict['vecs'] = _Utils.compress_list(vect_components, num_decimals)
