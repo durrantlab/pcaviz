@@ -9,7 +9,6 @@ import numpy as np
 import _Utils
 from _UserParams import get_params
 
-
 # Calculate PCA of the first trajectory using MDAnalysis' class.
 def get_PCA_trajectory(traj, selection, cum_var):
     """
@@ -58,20 +57,20 @@ def get_PCA_trajectory(traj, selection, cum_var):
     # into a string
 
     # Save atom information.
-    res_id_name_already_seen = set([])
+    last_key = ""
     for a in atomgroup:
         at_name = a.name
         res_name = a.resname
-        res_chain = a.chain
         res_id = a.resid
 
         # If statement will check to see if residue id is present if it's not
         # present it will add the residue id, residue name, and the residue's
         # atoms
-        key = res_id + res_name + res_chain # Because list is not hashable.
-        if key not in res_id_name_already_seen:
-            data_json.append([int(res_id), res_name, at_name, res_chain])
-            res_id_name_already_seen.add(key)
+        # import pdb; pdb.set_trace()
+        key = str(res_id) + res_name # Because list is not hashable.
+        if key != last_key:
+            data_json.append([int(res_id), res_name, at_name])
+            last_key = key
         else:
             data_json.append(at_name)
 
