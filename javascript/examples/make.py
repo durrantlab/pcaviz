@@ -63,6 +63,8 @@ def demo_HTML(page):
                         windowAverageSize: 25
                     });
 
+                    window.browserSim = browserSim;
+
                     setTimeout(() => {
                         browserSim.player.stop();
                         setTimeout(() => {

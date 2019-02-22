@@ -371,6 +371,7 @@ var _IO = /** @class */ (function () {
         var curResID = "0";
         var curResName = "";
         var pdbTxt = "";
+        var firstFrameCoors = this._parent.getFrameCoors(0);
         for (var idxStr in res_info) {
             if (res_info.hasOwnProperty(idxStr)) {
                 var idx = parseInt(idxStr, 10);
@@ -385,11 +386,7 @@ var _IO = /** @class */ (function () {
                     "AL", "MN", "CO", "NI", "CU"].indexOf(element) === -1) {
                     element = " " + element.substr(0, 1);
                 }
-                var coor = [
-                    this._parent._averagePositions[3 * idx],
-                    this._parent._averagePositions[3 * idx + 1],
-                    this._parent._averagePositions[3 * idx + 2],
-                ];
+                var coor = firstFrameCoors[idx];
                 pdbTxt += "ATOM  " + this._rjust(5, idx.toString()) +
                     this._rjust(5, v) + this._rjust(4, curResName) +
                     " X" + this._rjust(4, curResID) + "    " +
@@ -694,7 +691,9 @@ var _Player = /** @class */ (function () {
                 _this._parent["viewer"].updateAtomPos(curFrame);
             }
             // Start the next iteration.
-            requestAnimationFrame(loop);
+            if (_this._animationFrameID !== undefined) {
+                requestAnimationFrame(loop);
+            }
         };
         this._animationFrameID = requestAnimationFrame(loop);
     };
@@ -705,6 +704,7 @@ var _Player = /** @class */ (function () {
     _Player.prototype["stop"] = function () {
         // Clear previous requestAnimationFrames.
         if (this._animationFrameID !== undefined) {
+            this._animationFrameID = undefined;
             cancelAnimationFrame(this._animationFrameID);
         }
     };

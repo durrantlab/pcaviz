@@ -463,6 +463,7 @@ class _IO {
         let curResID = "0";
         let curResName = "";
         let pdbTxt = "";
+        let firstFrameCoors = this._parent.getFrameCoors(0);
         for (let idxStr in res_info) {
             if (res_info.hasOwnProperty(idxStr)) {
                 let idx = parseInt(idxStr, 10);
@@ -480,11 +481,7 @@ class _IO {
                     element = " " + element.substr(0, 1);
                 }
 
-                let coor = [
-                    this._parent._averagePositions[3 * idx],
-                    this._parent._averagePositions[3 * idx + 1],
-                    this._parent._averagePositions[3 * idx + 2],
-                ]
+                let coor = firstFrameCoors[idx];
 
                 pdbTxt += "ATOM  " + this._rjust(5, idx.toString()) +
                           this._rjust(5, v) + this._rjust(4, curResName) +
@@ -833,7 +830,9 @@ class _Player {
             }
 
             // Start the next iteration.
-            requestAnimationFrame(loop);
+            if (this._animationFrameID !== undefined) {
+                requestAnimationFrame(loop);
+            }
         }
 
         this._animationFrameID = requestAnimationFrame(loop);
@@ -846,6 +845,7 @@ class _Player {
     public "stop"(): void {
         // Clear previous requestAnimationFrames.
         if (this._animationFrameID !== undefined) {
+            this._animationFrameID = undefined;
             cancelAnimationFrame(this._animationFrameID);
         }
     }
