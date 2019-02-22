@@ -495,7 +495,7 @@ class _IO {
             }
         }
 
-        this._parent["viewer"].addPDBTxt(pdbTxt);
+        this._parent["viewer"]["addPDBTxt"](pdbTxt);
     }
 
     /**

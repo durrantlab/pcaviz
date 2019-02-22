@@ -397,7 +397,7 @@ var _IO = /** @class */ (function () {
                 //   "  1.00  0.00           X  \n";
             }
         }
-        this._parent["viewer"].addPDBTxt(pdbTxt);
+        this._parent["viewer"]["addPDBTxt"](pdbTxt);
     };
     /**
      * Makes a multi-frame PDB file of the simulation. Good for debugging.
