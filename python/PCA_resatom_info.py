@@ -12,23 +12,29 @@ from _UserParams import get_params
 # Calculate PCA of the first trajectory using MDAnalysis' class.
 def get_PCA_trajectory(traj, selection, cum_var):
     """
-    This function performs PCA analysis using the MDAnalysis PCA analysis class.
+    This function performs PCA analysis using the MDAnalysis PCA analysis
+    class.
 
     It obtains the information necessary for expansion back into a trajectory.
 
-    :param MDAnalysis.Universe traj: The universe containing the trajectory to be compressed.
+    :param MDAnalysis.Universe traj: The universe containing the trajectory to
+                                     be compressed.
 
-    :param str selection: The atom selection to be included in the compression e.g. protein, name CA...
+    :param str selection: The atom selection to be included in the compression
+                          e.g. protein, name CA...
 
-    :param float cum_var: The amount of variance to be explained cumulatively by calculated components.
+    :param float cum_var: The amount of variance to be explained cumulatively
+                          by calculated components.
 
     :returns: The principal component vectors.
     :rtype: :class:'ndarray'
 
-    :returns: The coordinates of selection in traj projected onto the calculated components.
+    :returns: The coordinates of selection in traj projected onto the
+              calculated components.
     :rtype: :class:'ndarray'
 
-    :returns: The coordinates of the average atomic positions of selection in traj in XYZ space.
+    :returns: The coordinates of the average atomic positions of selection in
+              traj in XYZ space.
     :rtype: :class:'ndarray'
 
     :returns: The first frame coordinates of selection in traj in XYZ space.
@@ -50,8 +56,7 @@ def get_PCA_trajectory(traj, selection, cum_var):
 
     # Calculate how many components are required to cumulatively explain
     # desired variance.
-    print("this seems wrong:")
-    print(get_trajectory_pca.cumulated_variance.tolist())
+    # for i in get_trajectory_pca.cumulated_variance.tolist(): print(i)
     n_pcs = np.where(get_trajectory_pca.cumulated_variance > cum_var)[0][0]
     # n_pcs = get_trajectory_pca.cumulated_variance.size  # uncomment for all vecs
 
@@ -83,13 +88,66 @@ def get_PCA_trajectory(traj, selection, cum_var):
     coords_avg_atoms = traj.trajectory.timeseries(asel=atomgroup).mean(axis=1)
 
     # Get first atomic coordinates.
-    coords_first_frame = traj.trajectory.timeseries(asel=atomgroup, start=0, stop=0).mean(axis=1)
+    coords_first_frame = traj.trajectory.timeseries(
+        asel=atomgroup, start=0, stop=0
+    ).mean(axis=1)
 
     # And project onto the principal components.
-    coords_project_onto_pca_space = get_trajectory_pca.transform(atomgroup,n_components=n_pcs)
+    coords_project_onto_pca_space = get_trajectory_pca.transform(
+        atomgroup, n_components=n_pcs
+    )
 
     # Return only the information necessary for compression and expansion.
     return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, coords_first_frame, data_json
+
+def un_pca(vect_components, PCA_coeff, coords_avg_atoms, compressed_json_filename):
+    """A temporary function that should "undo" to PCA (back to Cartesian space).
+
+    :param vect_components: The PCA vectors.
+    :type vect_components: numpy.array
+    :param PCA_coeff: The PCA coefficients for each frame.
+    :type PCA_coeff: numpy.array
+    :param coords_avg_atoms: The average coordinates.
+    :type coords_avg_atoms: numpy.array
+    :param compressed_json_filename: The name of the compressed json file.
+    :type compressed_json_filename: string.
+    """
+
+    import numpy
+
+    # Dummy variables.
+    atomName = "X"
+    resName = "XXX"
+    chain = "X"
+    resID = "0"
+    element = "X"
+
+    with open(compressed_json_filename + ".uncompressed.pdb", "w") as f:
+
+        # Go through each of the frames.
+        for frame_idx, frame_coeffs in enumerate(PCA_coeff):
+            f.write("MODEL " + str(frame_idx) + "\n")
+
+            # Get the coordinates for the current frame.
+            frame_coors_delta = numpy.dot(frame_coeffs, vect_components)
+            frame_coors_delta_3d = numpy.reshape(frame_coors_delta, (len(frame_coors_delta) / 3,3))
+            frame_coors = coords_avg_atoms + frame_coors_delta_3d
+
+            # Go through each of the coordinates in this frame.
+            for x, y, z in frame_coors:
+                # Make a PDB line
+                pdb_line = "ATOM  " + str(frame_idx).rjust(5) + \
+                           atomName.rjust(5) + resName.rjust(4) + \
+                           " " + chain + resID.rjust(4) + "    " + \
+                           "{:8.3f}{:8.3f}{:8.3f}" + \
+                           "  1.00  0.00          " + \
+                           element + "  \n"
+
+                pdb_line = pdb_line.format(x, y, z)
+
+                f.write(pdb_line)
+
+            f.write("ENDMDL\n")
 
 # Main function.
 if __name__ == '__main__':
@@ -101,18 +159,27 @@ if __name__ == '__main__':
 
     # Load a trajectory for coor_file, aligning it if it is the first.
     if coor_file is not None:
-        traj = _Utils.load_traj(top_file, coor_file, align_sel=params['align_sel'])
+        traj = _Utils.load_traj(
+            top_file, coor_file, align_sel=params['align_sel']
+        )
     else:
-        traj = _Utils.load_traj(top_file, align_sel=params['align_sel'])
+        traj = _Utils.load_traj(
+            top_file, align_sel=params['align_sel']
+        )
 
-    # Stride or trim the trajectory as desired, this transfers the trajectory to memory.
+    # Stride or trim the trajectory as desired, this transfers the trajectory
+    # to memory.
     if params['stride'] > 1 or params['starting_frame'] > 0:
         sel = traj.select_atoms('all')
-        analyze = AnalysisFromFunction(lambda ag: ag.positions.copy(), traj.atoms)
+        analyze = AnalysisFromFunction(
+            lambda ag: ag.positions.copy(), traj.atoms
+        )
         coor = analyze.run().results
         traj = MDAnalysis.Merge(sel)
-        traj = traj.load_new(coor[params['starting_frame']::params['stride']],
-                                         format=MemoryReader)
+        traj = traj.load_new(
+            coor[params['starting_frame']::params['stride']],
+            format=MemoryReader
+        )
 
     # Calculate trajectory on principal components and retrieve PCA
     # information
@@ -130,8 +197,12 @@ if __name__ == '__main__':
     my_dict = {}
     my_dict['vecs'] = _Utils.compress_list(vect_components, num_decimals)
     my_dict['coeffs'] = _Utils.compress_list(PCA_coeff, num_decimals)
-    my_dict['coors'] = _Utils.compress_list(coords_avg_atoms, num_decimals, is_coor=True)
-    my_dict['first_coors'] = _Utils.compress_list(coords_first_frame, num_decimals, is_coor=True)
+    my_dict['coors'] = _Utils.compress_list(
+        coords_avg_atoms, num_decimals, is_coor=True
+    )
+    my_dict['first_coors'] = _Utils.compress_list(
+        coords_first_frame, num_decimals, is_coor=True
+    )
     my_dict['params'] = params
     my_dict['res_info'] = data_json_info
 
@@ -150,3 +221,6 @@ if __name__ == '__main__':
     # Write the file.
     with open(output_name, 'w') as write_file:
         write_file.write(json_txt)
+
+    # Test it
+    un_pca(vect_components, PCA_coeff, coords_avg_atoms, output_name)
