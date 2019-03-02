@@ -42,6 +42,7 @@ class BrowserSim {
     public _componentData = [];
 
     public _averagePositions = undefined;
+    public _firstFramePositions = undefined;
     public _params: Params = {};
 
     public _res_info = undefined;
@@ -349,6 +350,9 @@ class _IO {
             // Set up the average positions.
             this._loadJSONSetupAveragePos(data, precisionFactor);
 
+            // Set up the first-frame positions.
+            this._loadJSONSetupFirstFramePos(data, precisionFactor);
+
             // Create a PDB file from the JSON and load it.
             this._makePDBFromJSON(data);
         }).done(() => {
@@ -463,13 +467,31 @@ class _IO {
         );
     }
 
+    private _loadJSONSetupFirstFramePos(data: any, precisionFactor: number) {
+        // Make the first-frame coordinates, converting them from int to float.
+        this._parent._firstFramePositions = new Float32Array(
+            data["first_coors"].map(v => precisionFactor * v)
+        );
+    }
+
     private _makePDBFromJSON(data: any) {
         let res_info = data["res_info"];
         this._parent._res_info = res_info;
         let curResID = "0";
         let curResName = "";
         let pdbTxt = "";
-        let firstFrameCoors = this._parent.getFrameCoors(0);
+        // let firstFrameCoors = this._parent.getFrameCoors(0);
+
+        // Reshape the averaged coordinates into a list of Float32Array triplets.
+        let firstFrameCoors = MathUtils._range(0, this._parent._componentSize / 3).map(i => {
+            let three_i = 3 * i;
+            return new Float32Array([
+                this._parent._firstFramePositions[three_i],
+                this._parent._firstFramePositions[three_i + 1],
+                this._parent._firstFramePositions[three_i + 2]
+            ]);
+        });
+
         for (let idxStr in res_info) {
             if (res_info.hasOwnProperty(idxStr)) {
                 let idx = parseInt(idxStr, 10);

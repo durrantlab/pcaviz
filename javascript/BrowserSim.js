@@ -20,6 +20,7 @@ var BrowserSim = /** @class */ (function () {
         this._componentSize = undefined;
         this._componentData = [];
         this._averagePositions = undefined;
+        this._firstFramePositions = undefined;
         this._params = {};
         this._res_info = undefined;
         this._cachedFrameCoors = {};
@@ -274,6 +275,8 @@ var _IO = /** @class */ (function () {
             _this._loadJSONSetupPCAComponents(data, precisionFactor);
             // Set up the average positions.
             _this._loadJSONSetupAveragePos(data, precisionFactor);
+            // Set up the first-frame positions.
+            _this._loadJSONSetupFirstFramePos(data, precisionFactor);
             // Create a PDB file from the JSON and load it.
             _this._makePDBFromJSON(data);
         }).done(function () {
@@ -368,13 +371,27 @@ var _IO = /** @class */ (function () {
         // Make the average coordinates, converting them from int to float.
         this._parent._averagePositions = new Float32Array(data["coors"].map(function (v) { return precisionFactor * v; }));
     };
+    _IO.prototype._loadJSONSetupFirstFramePos = function (data, precisionFactor) {
+        // Make the first-frame coordinates, converting them from int to float.
+        this._parent._firstFramePositions = new Float32Array(data["first_coors"].map(function (v) { return precisionFactor * v; }));
+    };
     _IO.prototype._makePDBFromJSON = function (data) {
+        var _this = this;
         var res_info = data["res_info"];
         this._parent._res_info = res_info;
         var curResID = "0";
         var curResName = "";
         var pdbTxt = "";
-        var firstFrameCoors = this._parent.getFrameCoors(0);
+        // let firstFrameCoors = this._parent.getFrameCoors(0);
+        // Reshape the averaged coordinates into a list of Float32Array triplets.
+        var firstFrameCoors = MathUtils._range(0, this._parent._componentSize / 3).map(function (i) {
+            var three_i = 3 * i;
+            return new Float32Array([
+                _this._parent._firstFramePositions[three_i],
+                _this._parent._firstFramePositions[three_i + 1],
+                _this._parent._firstFramePositions[three_i + 2]
+            ]);
+        });
         for (var idxStr in res_info) {
             if (res_info.hasOwnProperty(idxStr)) {
                 var idx = parseInt(idxStr, 10);

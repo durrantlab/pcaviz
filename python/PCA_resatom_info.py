@@ -31,6 +31,9 @@ def get_PCA_trajectory(traj, selection, cum_var):
     :returns: The coordinates of the average atomic positions of selection in traj in XYZ space.
     :rtype: :class:'ndarray'
 
+    :returns: The first frame coordinates of selection in traj in XYZ space.
+    :rtype: :class:'ndarray
+
     :returns: The atom type and number of the selection in traj.
     :rtype :class:'list'
 
@@ -79,11 +82,14 @@ def get_PCA_trajectory(traj, selection, cum_var):
     # Get average atomic coordinates.
     coords_avg_atoms = traj.trajectory.timeseries(asel=atomgroup).mean(axis=1)
 
+    # Get first atomic coordinates.
+    coords_first_frame = traj.trajectory.timeseries(asel=atomgroup, start=0, stop=0).mean(axis=1)
+
     # And project onto the principal components.
     coords_project_onto_pca_space = get_trajectory_pca.transform(atomgroup,n_components=n_pcs)
 
     # Return only the information necessary for compression and expansion.
-    return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, data_json
+    return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, coords_first_frame, data_json
 
 # Main function.
 if __name__ == '__main__':
@@ -110,7 +116,7 @@ if __name__ == '__main__':
 
     # Calculate trajectory on principal components and retrieve PCA
     # information
-    vect_components, PCA_coeff, coords_avg_atoms, data_json_info = get_PCA_trajectory(
+    vect_components, PCA_coeff, coords_avg_atoms, coords_first_frame, data_json_info = get_PCA_trajectory(
         traj, params['selection'], params['cum_var']
     )
 
@@ -125,6 +131,7 @@ if __name__ == '__main__':
     my_dict['vecs'] = _Utils.compress_list(vect_components, num_decimals)
     my_dict['coeffs'] = _Utils.compress_list(PCA_coeff, num_decimals)
     my_dict['coors'] = _Utils.compress_list(coords_avg_atoms, num_decimals, is_coor=True)
+    my_dict['first_coors'] = _Utils.compress_list(coords_first_frame, num_decimals, is_coor=True)
     my_dict['params'] = params
     my_dict['res_info'] = data_json_info
 
@@ -135,8 +142,10 @@ if __name__ == '__main__':
     json_txt = json_txt.replace(' ', '')
 
     # Obtain output file name.
-    output_name = _Utils.output_filename('compressed', 'json', coor_file=coor_file,
-                                         output_dir=params['output_dir'])
+    output_name = _Utils.output_filename(
+        'compressed', 'json', coor_file=coor_file,
+        output_dir=params['output_dir']
+    )
 
     # Write the file.
     with open(output_name, 'w') as write_file:
