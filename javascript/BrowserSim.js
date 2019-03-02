@@ -1,3 +1,4 @@
+// (<any>window).requestAnimationFrame;
 var BrowserSim = /** @class */ (function () {
     /**
      * Constructor for the BrowserSim class.
@@ -20,6 +21,7 @@ var BrowserSim = /** @class */ (function () {
         this._componentData = [];
         this._averagePositions = undefined;
         this._params = {};
+        this._res_info = undefined;
         this._cachedFrameCoors = {};
         this["io"] = new _IO(this); // This way so it survives closure compiler.
         this.updateParams(params);
@@ -190,7 +192,7 @@ var BrowserSim = /** @class */ (function () {
                 var summedMultipledComponents = MathUtils.sumArrayOfFloat32Arrays(multipledComponents);
                 return summedMultipledComponents;
             });
-            // Now average the flattened coordinates over the frame windowe.
+            // Now average the flattened coordinates over the frame window.
             var summedCoorsOverFrames = coorsFlattenedForFrames.reduce(function (summedCoors, newCoors) {
                 return MathUtils.sumArrayOfFloat32Arrays([summedCoors, newCoors]);
             });
@@ -368,6 +370,7 @@ var _IO = /** @class */ (function () {
     };
     _IO.prototype._makePDBFromJSON = function (data) {
         var res_info = data["res_info"];
+        this._parent._res_info = res_info;
         var curResID = "0";
         var curResName = "";
         var pdbTxt = "";
@@ -381,23 +384,25 @@ var _IO = /** @class */ (function () {
                     curResName = v[1];
                     v = v[2];
                 }
-                var element = v.substr(0, 2).toUpperCase();
-                if (["CL", "BR", "ZN", "MG", "SE", "FE",
-                    "AL", "MN", "CO", "NI", "CU"].indexOf(element) === -1) {
-                    element = " " + element.substr(0, 1);
-                }
                 var coor = firstFrameCoors[idx];
-                pdbTxt += "ATOM  " + this._rjust(5, idx.toString()) +
-                    this._rjust(5, v) + this._rjust(4, curResName) +
-                    " X" + this._rjust(4, curResID) + "    " +
-                    this._formatNumForPDB(coor[0]) +
-                    this._formatNumForPDB(coor[1]) +
-                    this._formatNumForPDB(coor[2]) +
-                    "  1.00  0.00          " + element + "  \n";
-                //   "  1.00  0.00           X  \n";
+                pdbTxt += this._makePDBLine(idx, v, curResName, "X", curResID, coor[0], coor[1], coor[2]);
             }
         }
         this._parent["viewer"]["addPDBTxt"](pdbTxt);
+    };
+    _IO.prototype._makePDBLine = function (idx, atomName, resName, chain, resID, x, y, z) {
+        var element = atomName.substr(0, 2).toUpperCase();
+        if (["CL", "BR", "ZN", "MG", "SE", "FE",
+            "AL", "MN", "CO", "NI", "CU"].indexOf(element) === -1) {
+            element = " " + element.substr(0, 1);
+        }
+        return "ATOM  " + this._rjust(5, idx.toString()) +
+            this._rjust(5, atomName) + this._rjust(4, resName) +
+            " " + chain + this._rjust(4, resID) + "    " +
+            this._formatNumForPDB(x) +
+            this._formatNumForPDB(y) +
+            this._formatNumForPDB(z) +
+            "  1.00  0.00          " + element + "  \n";
     };
     /**
      * Makes a multi-frame PDB file of the simulation. Good for debugging.
@@ -408,14 +413,18 @@ var _IO = /** @class */ (function () {
         var pdbTxt = "";
         for (var frameIdx = 0; frameIdx < this._parent._numFramesTotal; frameIdx++) {
             pdbTxt += "MODEL " + frameIdx.toString() + "\n";
+            var coors = this._parent.getFrameCoors(frameIdx);
+            var curResID = "";
+            var curResName = "";
             for (var atomIdx = 0; atomIdx < numAtoms; atomIdx++) {
-                var coor = this._parent.getAtomCoors(frameIdx, atomIdx);
-                pdbTxt += "ATOM  " + this._rjust(5, atomIdx.toString()) +
-                    "  X   XXX X 852    " +
-                    this._formatNumForPDB(coor[0]) +
-                    this._formatNumForPDB(coor[1]) +
-                    this._formatNumForPDB(coor[2]) +
-                    "  1.00  0.00           X  \n";
+                var v = this._parent._res_info[atomIdx];
+                if (typeof (v) !== "string") {
+                    curResID = v[0].toString();
+                    curResName = v[1];
+                    v = v[2];
+                }
+                var coor = coors[atomIdx];
+                pdbTxt += this._makePDBLine(atomIdx, v, curResName, "X", curResID, coor[0], coor[1], coor[2]);
             }
             pdbTxt += "ENDMDL\n";
         }
@@ -776,32 +785,126 @@ var MathUtils;
     }
     MathUtils.multiplyFloat32ArrayByScalar = multiplyFloat32ArrayByScalar;
 })(MathUtils || (MathUtils = {}));
-// Polyfill requestAnimationFrame
-// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
-// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
-// MIT license
-(function () {
-    var lastTime = 0;
-    var vendors = ['ms', 'moz', 'webkit', 'o'];
-    for (var x = 0; x < vendors.length && !window["requestAnimationFrame"]; ++x) {
-        window["requestAnimationFrame"] = window[vendors[x] + 'RequestAnimationFrame'];
-        window["cancelAnimationFrame"] = window[vendors[x] + 'CancelAnimationFrame']
-            || window[vendors[x] + 'CancelRequestAnimationFrame'];
-    }
-    if (!window["requestAnimationFrame"])
-        window["requestAnimationFrame"] = function (callback, element) {
-            var currTime = new Date().getTime();
-            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function () {
-                callback(currTime + timeToCall);
-            }, timeToCall);
-            lastTime = currTime + timeToCall;
-            return id;
-        };
-    if (!window["cancelAnimationFrame"])
-        window["cancelAnimationFrame"] = function (id) {
-            clearTimeout(id);
-        };
-}());
-window["BrowserSim"] = BrowserSim; // To survive closure compiler.
+var runningUnderNodeJS = false;
+try {
+    window;
+}
+catch (err) {
+    // You must be running this using nodejs.
+    runningUnderNodeJS = true;
+}
+if (!runningUnderNodeJS) {
+    // Polyfill requestAnimationFrame
+    // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+    // http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
+    // requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
+    // MIT license
+    (function () {
+        var lastTime = 0;
+        var vendors = ['ms', 'moz', 'webkit', 'o'];
+        for (var x = 0; x < vendors.length && !window["requestAnimationFrame"]; ++x) {
+            window["requestAnimationFrame"] = window[vendors[x] + 'RequestAnimationFrame'];
+            window["cancelAnimationFrame"] = window[vendors[x] + 'CancelAnimationFrame']
+                || window[vendors[x] + 'CancelRequestAnimationFrame'];
+        }
+        if (!window["requestAnimationFrame"])
+            window["requestAnimationFrame"] = function (callback) {
+                var currTime = new Date().getTime();
+                var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+                var id = window.setTimeout(function () {
+                    callback(currTime + timeToCall);
+                }, timeToCall);
+                lastTime = currTime + timeToCall;
+                return id;
+            };
+        if (!window["cancelAnimationFrame"])
+            window["cancelAnimationFrame"] = function (id) {
+                clearTimeout(id);
+            };
+    }());
+    window["BrowserSim"] = BrowserSim; // To survive closure compiler.
+}
+else {
+    // It's running under node js. Note that you won't be using the closure
+    // compiled version of the code from nodejs, so no need to worry about
+    // that here.
+    // Get the json file from the command line and make the trajectory.
+    var jsonFile_1 = process.argv[2];
+    // Make a fake jQuery.getJSON function.
+    var jsonData_1;
+    global.jQuery = {
+        getJSON: function (path, callBackFunc) {
+            var fs = require("fs");
+            // return new Promise((fulfill, reject) => {
+            //     fs.readFile(path, 'utf8').done((content) => {
+            //         let contentJSON = JSON.parse(content);
+            //         callBackFunc(contentJSON);
+            //         try {
+            //             fulfill(JSON.parse(content));
+            //         } catch (ex) {
+            //             reject(ex);
+            //         }
+            //     }, reject);
+            // });
+            var content = fs.readFileSync(jsonFile_1);
+            var jsonData = JSON.parse(content);
+            callBackFunc(jsonData);
+            return {
+                done: function (func) {
+                    func();
+                    return {
+                        fail: function (func) {
+                            // Never allow fail.
+                            // func();
+                            return;
+                        }
+                    };
+                },
+            };
+            // return new Promise(function (fulfill, reject) {
+            //     return;
+            // });
+        },
+        extend: function (a, b, c) {
+            for (var k in b) {
+                if (b.hasOwnProperty(k)) {
+                    a[k] = b[k];
+                }
+            }
+            for (var k in c) {
+                if (c.hasOwnProperty(k)) {
+                    a[k] = c[k];
+                }
+            }
+            return a;
+        }
+    };
+    // Now create the
+    var browserSim_1 = new BrowserSim({
+        viewer: {},
+        viewerType: 'GENERIC',
+        windowAverageSize: 1,
+        loadPDBTxt: function (pdbTxt, viewer, browserSim) { return; },
+        updateAtomPositions: function (newAtomCoors, model, viewer, browserSim) { return; },
+        //     var atoms = model.selectedAtoms({});
+        //     for (let atomIdx=0; atomIdx<atoms.length; atomIdx++) {
+        //         let coors = newAtomCoors[atomIdx];
+        //         atoms[atomIdx]["x"] = coors[0];
+        //         atoms[atomIdx]["y"] = coors[1];
+        //         atoms[atomIdx]["z"] = coors[2];
+        //     }
+        // },
+        render: function (model, viewer, browserSim) {
+            // model.setStyle(
+            //     {}, { sphere: { color: "green" }}
+            // );
+            // viewer.render();
+            return;
+        },
+    });
+    browserSim_1.io.loadJSON("data.json", function () {
+        var func = browserSim_1.io.makePDB.bind(browserSim_1.io);
+        var pdbTxt = func(jsonData_1);
+        console.log(pdbTxt);
+    });
+}

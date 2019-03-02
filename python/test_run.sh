@@ -3,4 +3,4 @@
 # --max_frames 500 
 # --ax1_min -20 --ax1_max 20 --ax2_min -20 --ax2_max 20
 
-python PCA_resatom_info.py --top_file test_files/LARP1_first_frame_top.pdb --coor_file test_files/LARP1_test_traj.pdb --cum_var 0.5 --selection "not name H*"
+python PCA_resatom_info.py --top_file test_files/LARP1_first_frame_top.pdb --coor_file test_files/LARP1_test_traj.pdb --cum_var 0.9 --selection "not name H*"

@@ -47,7 +47,10 @@ def get_PCA_trajectory(traj, selection, cum_var):
 
     # Calculate how many components are required to cumulatively explain
     # desired variance.
+    print("this seems wrong:")
+    print(get_trajectory_pca.cumulated_variance.tolist())
     n_pcs = np.where(get_trajectory_pca.cumulated_variance > cum_var)[0][0]
+    # n_pcs = get_trajectory_pca.cumulated_variance.size  # uncomment for all vecs
 
     # Only select atoms of interest.
     atomgroup = traj.select_atoms(selection)
@@ -66,7 +69,6 @@ def get_PCA_trajectory(traj, selection, cum_var):
         # If statement will check to see if residue id is present if it's not
         # present it will add the residue id, residue name, and the residue's
         # atoms
-        # import pdb; pdb.set_trace()
         key = str(res_id) + res_name # Because list is not hashable.
         if key != last_key:
             data_json.append([int(res_id), res_name, at_name])
@@ -112,7 +114,7 @@ if __name__ == '__main__':
         traj, params['selection'], params['cum_var']
     )
 
-    # Keep only the save number of top vect_components as the number of
+    # Keep only the same number of top vect_components as the number of
     # PCA_coeff
     vect_components = vect_components[:len(PCA_coeff[0])]
 
