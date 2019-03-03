@@ -288,6 +288,13 @@ var _IO = /** @class */ (function () {
         }); */
     };
     ;
+    /**
+     * Sets up the frame coefficients, including interpolating between them.
+     * @param  {Object<string,*>}  data             The data from the JSON.
+     * @param  {number}            precisionFactor  The precision to use
+     *                                              (number of decimal
+     *                                              points).
+     */
     _IO.prototype._loadJSONSetupFrameCoeffs = function (data, precisionFactor) {
         // Setup the frames
         this._parent._numFramesInJSON = data["coeffs"].length;
@@ -348,6 +355,13 @@ var _IO = /** @class */ (function () {
             }
         }
     };
+    /**
+     * Sets up the PCA vectors (components).
+     * @param  {Object<string,*>}  data             The data from the JSON.
+     * @param  {number}            precisionFactor  The precision to use
+     *                                              (number of decimal
+     *                                              points).
+     */
     _IO.prototype._loadJSONSetupPCAComponents = function (data, precisionFactor) {
         // Set up the components
         this._parent._componentSize = data["vecs"][0].length;
@@ -367,14 +381,33 @@ var _IO = /** @class */ (function () {
             }
         }
     };
+    /**
+     * Sets up the average-position coordinates.
+     * @param  {Object<string,*>}  data             The data from the JSON.
+     * @param  {number}            precisionFactor  The precision to use
+     *                                              (number of decimal
+     *                                              points).
+     */
     _IO.prototype._loadJSONSetupAveragePos = function (data, precisionFactor) {
         // Make the average coordinates, converting them from int to float.
         this._parent._averagePositions = new Float32Array(data["coors"].map(function (v) { return precisionFactor * v; }));
     };
+    /**
+     * Sets up the first-frame coordinates.
+     * @param  {Object<string,*>}  data             The data from the JSON.
+     * @param  {number}            precisionFactor  The precision to use
+     *                                              (number of decimal
+     *                                              points).
+     */
     _IO.prototype._loadJSONSetupFirstFramePos = function (data, precisionFactor) {
         // Make the first-frame coordinates, converting them from int to float.
         this._parent._firstFramePositions = new Float32Array(data["first_coors"].map(function (v) { return precisionFactor * v; }));
     };
+    /**
+     * Makes a PDB file of the first-frame coordinates from the JSON file.
+     * @param  {Object<string,*>}  data             The data from the JSON.
+     * @returns void
+     */
     _IO.prototype._makePDBFromJSON = function (data) {
         var _this = this;
         var res_info = data["res_info"];
@@ -382,7 +415,6 @@ var _IO = /** @class */ (function () {
         var curResID = "0";
         var curResName = "";
         var pdbTxt = "";
-        // let firstFrameCoors = this._parent.getFrameCoors(0);
         // Reshape the averaged coordinates into a list of Float32Array triplets.
         var firstFrameCoors = MathUtils._range(0, this._parent._componentSize / 3).map(function (i) {
             var three_i = 3 * i;
@@ -407,6 +439,18 @@ var _IO = /** @class */ (function () {
         }
         this._parent["viewer"]["addPDBTxt"](pdbTxt);
     };
+    /**
+     * Makes a PDB line.
+     * @param  {number} idx       The atom index.
+     * @param  {string} atomName  The atom name.
+     * @param  {string} resName   The residue name.
+     * @param  {string} chain     The chain id.
+     * @param  {string} resID     The residue id.
+     * @param  {number} x         The X coordinate.
+     * @param  {number} y         The Y coordinate.
+     * @param  {number} z         The Z coordinate.
+     * @returns string The PDB line.
+     */
     _IO.prototype._makePDBLine = function (idx, atomName, resName, chain, resID, x, y, z) {
         var element = atomName.substr(0, 2).toUpperCase();
         if (["CL", "BR", "ZN", "MG", "SE", "FE",
@@ -730,8 +774,8 @@ var _Player = /** @class */ (function () {
     _Player.prototype["stop"] = function () {
         // Clear previous requestAnimationFrames.
         if (this._animationFrameID !== undefined) {
-            this._animationFrameID = undefined;
             cancelAnimationFrame(this._animationFrameID);
+            this._animationFrameID = undefined;
         }
     };
     /**

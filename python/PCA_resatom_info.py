@@ -56,7 +56,7 @@ def get_PCA_trajectory(traj, selection, cum_var):
 
     # Calculate how many components are required to cumulatively explain
     # desired variance.
-    # for i in get_trajectory_pca.cumulated_variance.tolist(): print(i)
+    for i in get_trajectory_pca.cumulated_variance.tolist(): print(i)
     n_pcs = np.where(get_trajectory_pca.cumulated_variance > cum_var)[0][0]
     # n_pcs = get_trajectory_pca.cumulated_variance.size  # uncomment for all vecs
 

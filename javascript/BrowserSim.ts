@@ -364,6 +364,14 @@ class _IO {
         }); */
     };
 
+
+    /**
+     * Sets up the frame coefficients, including interpolating between them.
+     * @param  {Object<string,*>}  data             The data from the JSON.
+     * @param  {number}            precisionFactor  The precision to use
+     *                                              (number of decimal
+     *                                              points).
+     */
     private _loadJSONSetupFrameCoeffs(data: any, precisionFactor: number) {
         // Setup the frames
         this._parent._numFramesInJSON = data["coeffs"].length;
@@ -436,6 +444,13 @@ class _IO {
         }
     }
 
+    /**
+     * Sets up the PCA vectors (components).
+     * @param  {Object<string,*>}  data             The data from the JSON.
+     * @param  {number}            precisionFactor  The precision to use
+     *                                              (number of decimal
+     *                                              points).
+     */
     private _loadJSONSetupPCAComponents(data: any, precisionFactor: number) {
         // Set up the components
         this._parent._componentSize = data["vecs"][0].length;
@@ -460,6 +475,13 @@ class _IO {
         }
     }
 
+    /**
+     * Sets up the average-position coordinates.
+     * @param  {Object<string,*>}  data             The data from the JSON.
+     * @param  {number}            precisionFactor  The precision to use
+     *                                              (number of decimal
+     *                                              points).
+     */
     private _loadJSONSetupAveragePos(data: any, precisionFactor: number) {
         // Make the average coordinates, converting them from int to float.
         this._parent._averagePositions = new Float32Array(
@@ -467,6 +489,13 @@ class _IO {
         );
     }
 
+    /**
+     * Sets up the first-frame coordinates.
+     * @param  {Object<string,*>}  data             The data from the JSON.
+     * @param  {number}            precisionFactor  The precision to use
+     *                                              (number of decimal
+     *                                              points).
+     */
     private _loadJSONSetupFirstFramePos(data: any, precisionFactor: number) {
         // Make the first-frame coordinates, converting them from int to float.
         this._parent._firstFramePositions = new Float32Array(
@@ -474,13 +503,17 @@ class _IO {
         );
     }
 
-    private _makePDBFromJSON(data: any) {
+    /**
+     * Makes a PDB file of the first-frame coordinates from the JSON file.
+     * @param  {Object<string,*>}  data             The data from the JSON.
+     * @returns void
+     */
+    private _makePDBFromJSON(data: any): void {
         let res_info = data["res_info"];
         this._parent._res_info = res_info;
         let curResID = "0";
         let curResName = "";
         let pdbTxt = "";
-        // let firstFrameCoors = this._parent.getFrameCoors(0);
 
         // Reshape the averaged coordinates into a list of Float32Array triplets.
         let firstFrameCoors = MathUtils._range(0, this._parent._componentSize / 3).map(i => {
@@ -514,7 +547,21 @@ class _IO {
         this._parent["viewer"]["addPDBTxt"](pdbTxt);
     }
 
-    private _makePDBLine(idx, atomName, resName, chain, resID, x, y, z) {
+    /**
+     * Makes a PDB line.
+     * @param  {number} idx       The atom index.
+     * @param  {string} atomName  The atom name.
+     * @param  {string} resName   The residue name.
+     * @param  {string} chain     The chain id.
+     * @param  {string} resID     The residue id.
+     * @param  {number} x         The X coordinate.
+     * @param  {number} y         The Y coordinate.
+     * @param  {number} z         The Z coordinate.
+     * @returns string The PDB line.
+     */
+    private _makePDBLine(idx: number, atomName: string, resName: string,
+                         chain: string, resID: string, x: number, y: number,
+                         z: number): string {
         let element = atomName.substr(0, 2).toUpperCase();
         if (["CL", "BR", "ZN", "MG", "SE", "FE",
              "AL", "MN", "CO", "NI", "CU"].indexOf(element) === -1) {
@@ -884,8 +931,8 @@ class _Player {
     public "stop"(): void {
         // Clear previous requestAnimationFrames.
         if (this._animationFrameID !== undefined) {
-            this._animationFrameID = undefined;
             cancelAnimationFrame(this._animationFrameID);
+            this._animationFrameID = undefined;
         }
     }
 
