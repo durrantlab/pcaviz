@@ -23,7 +23,7 @@ def output_filename(description, ext, coor_file, output_dir=None):
     :return: A path and filename ordered as output_dir/coor_name.description.ext
     :rtype: :class:'str'
     """
-    
+
     # If the description is present, add "." to the beginning.
     if description != "":
         description = "." + description
@@ -32,12 +32,12 @@ def output_filename(description, ext, coor_file, output_dir=None):
     filename = os.path.splitext(coor_file)[0] + description + "." + ext
 
     # Put it in the right path.
-    if output_dir is not None: 
+    if output_dir is not None:
         filename = output_dir + os.path.basename(filename)
-   
+
     # Let the user know where it is going.
     print("Writing to file: " + filename)
-    
+
     # Return the filename.
     return filename
 
@@ -112,7 +112,7 @@ def find_top_and_coor_files():
     return top_file, coor_file
 
 
-def load_traj(top_file, coor_file=None, align=True, 
+def load_traj(top_file, coor_file=None, align=True,
               align_sel='name CA'):
     """
     Loads an MDAnalysis Universe from topology and/or coordinate files. Requires MDAnalysis.
@@ -176,7 +176,7 @@ def align_trajectory(traj, align_sel="name CA"):
 def compress_list(to_round, num_decimals, is_coor=False):
     """
     This function compresses a list by rounding its elements to num_decimals places.
-    
+
     It then converts the elements to integers and flattens the output according to is_coor.
 
     :param array_like to_round: An array_like containing floats to be compressed.
@@ -210,3 +210,23 @@ def compress_list(to_round, num_decimals, is_coor=False):
     # Return compressed list.
     return compressed_list
 
+def save_pdb_first_frame(traj, filename, sel_str='all'):
+    """
+    This function saves the first frame of a MDAnalysis universe,
+    or a subset of atoms therein, as a new PDB file.
+
+    It is primarily used internally for aligning trajectories to one another in the PCA script.
+
+    :param MDAnalysis.Universe traj: The trajectory of which the first frame will be saved.
+
+    :param str filename: The name of the output PDB file to which the first frame will be saved.
+
+    :param str sel_str: The atom selection of the first frame to save to the file. Defaults to 'all'.
+    """
+
+    sel = traj.select_atoms(sel_str)
+    with MDAnalysis.Writer(filename,
+                           multiframe=True,
+                           n_atoms=traj.atoms.n_atoms) as W:
+        traj.trajectory[0]
+        W.write(sel)

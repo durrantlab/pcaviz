@@ -1,13 +1,34 @@
 import json
-
 import MDAnalysis
 from MDAnalysis.analysis.base import AnalysisFromFunction
-from MDAnalysis.analysis import pca
 from MDAnalysis.coordinates.memory import MemoryReader
 import numpy as np
+from sklearn.decomposition import PCA
+
+# from MDAnalysis.analysis import pca
+
 
 import _Utils
 from _UserParams import get_params
+
+class FakeAtomGroupForPCAMean:
+    # See
+    # https://www.mdanalysis.org/docs/_modules/MDAnalysis/analysis/pca.html
+    def __init__(self, traj, selection):
+        # Get the indices of the atoms that match the selection
+        atom_group = traj.select_atoms(selection)
+        idx_of_selected_atoms = atom_group.indices
+
+        # Get the first-frame coordinates of those same atoms
+        first_frame = traj.trajectory[0]
+        coors_of_first_frame = first_frame.positions[idx_of_selected_atoms]
+
+        # Flatten the coordinates and put it in the positions variable to
+        # compensate for MDAnalysis bug.
+        self.positions = coors_of_first_frame.ravel()
+
+    def get_first_frame_coors(self):
+        return self.positions.reshape((len(self.positions)/3,3))
 
 # Calculate PCA of the first trajectory using MDAnalysis' class.
 def get_PCA_trajectory(traj, selection, cum_var):
@@ -47,18 +68,52 @@ def get_PCA_trajectory(traj, selection, cum_var):
     :rtype :class:'list'
     """
 
-    # Calculate principal components and variation of specific atom selection.
-    get_trajectory_pca = pca.PCA(traj, selection)
-    pca_space = get_trajectory_pca.run()
+    # Get the indices of the atoms that match the selection
+    atom_group = traj.select_atoms(selection)
+    idx_of_selected_atoms = atom_group.indices
 
-    # Access the components themselves.
-    pca_vectors = pca_space.p_components
+    # Get the flattened coordinates of each frame.
+    coor_data = []
+    for frame in traj.trajectory:
+        coor_data.append(frame.positions[idx_of_selected_atoms].ravel())
+    coor_data = np.array(coor_data)
+
+    # Calculate all the principal components.
+    pca = PCA(n_components=min(coor_data.shape))
+    pca.fit(coor_data)
+    pca_vectors = pca.components_
+
+    # Also get the coefficients for each frame
+    coords_project_onto_pca_space = pca.transform(coor_data)
 
     # Calculate how many components are required to cumulatively explain
     # desired variance.
-    for i in get_trajectory_pca.cumulated_variance.tolist(): print(i)
-    n_pcs = np.where(get_trajectory_pca.cumulated_variance > cum_var)[0][0]
-    # n_pcs = get_trajectory_pca.cumulated_variance.size  # uncomment for all vecs
+    var = pca.explained_variance_ratio_
+    cumulated_variance = np.array([np.sum(var[:i+1]) for i in range(var.size)])
+    where_var_ok = np.where(cumulated_variance > cum_var)[0]
+    n_pcs = cumulated_variance.size if where_var_ok.size == 0 else where_var_ok[0]
+
+    # Keep only the appropriate number of components and coefficients
+    pca_vectors = pca_vectors[:n_pcs]
+    coords_project_onto_pca_space = coords_project_onto_pca_space[:,:n_pcs]
+
+    # Also calculate the mean structure
+    coords_first_frame = pca.mean_
+
+    # pca.mean_
+    # pca.components_
+    # pca.explained_variance_ratio_
+
+
+    # fake_atom_group_first_frame = FakeAtomGroupForPCAMean(traj, selection)
+
+    # Calculate principal components and variation of specific atom selection.
+    # get_trajectory_pca = pca.PCA(traj, selection, mean=fake_atom_group_first_frame)
+    # pca_space = get_trajectory_pca.run()
+
+    # Access the components themselves.
+    # pca_vectors = pca_space.p_components
+    # import pdb; pdb.set_trace()
 
     # Only select atoms of interest.
     atomgroup = traj.select_atoms(selection)
@@ -85,35 +140,36 @@ def get_PCA_trajectory(traj, selection, cum_var):
             data_json.append(at_name)
 
     # Get average atomic coordinates.
-    coords_avg_atoms = traj.trajectory.timeseries(asel=atomgroup).mean(axis=1)
+    # coords_avg_atoms = traj.trajectory.timeseries(asel=atomgroup).mean(axis=1)
+    # coords_avg_atoms = get_trajectory_pca.mean_atoms.positions
+    # coords_first_frame = fake_atom_group_first_frame.get_first_frame_coors()
 
     # Get first atomic coordinates.
-    coords_first_frame = traj.trajectory.timeseries(
-        asel=atomgroup, start=0, stop=0
-    ).mean(axis=1)
+    # coords_first_frame = traj.trajectory.timeseries(
+    #     asel=atomgroup, start=0, stop=0
+    # ).mean(axis=1)
 
     # And project onto the principal components.
-    coords_project_onto_pca_space = get_trajectory_pca.transform(
-        atomgroup, n_components=n_pcs
-    )
+    # coords_project_onto_pca_space = get_trajectory_pca.transform(
+        # atomgroup, n_components=n_pcs
+    # )
 
     # Return only the information necessary for compression and expansion.
-    return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, coords_first_frame, data_json
+    # return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, coords_first_frame, data_json
+    return pca_vectors, coords_project_onto_pca_space, coords_first_frame, data_json
 
-def un_pca(vect_components, PCA_coeff, coords_avg_atoms, compressed_json_filename):
+def un_pca(vect_components, PCA_coeff, coords_first_frame, compressed_json_filename):
     """A temporary function that should "undo" to PCA (back to Cartesian space).
 
     :param vect_components: The PCA vectors.
     :type vect_components: numpy.array
     :param PCA_coeff: The PCA coefficients for each frame.
     :type PCA_coeff: numpy.array
-    :param coords_avg_atoms: The average coordinates.
-    :type coords_avg_atoms: numpy.array
+    :param coords_first_frame: The first-frame coordinates.
+    :type coords_first_frame: numpy.array
     :param compressed_json_filename: The name of the compressed json file.
     :type compressed_json_filename: string.
     """
-
-    import numpy
 
     # Dummy variables.
     atomName = "X"
@@ -129,12 +185,12 @@ def un_pca(vect_components, PCA_coeff, coords_avg_atoms, compressed_json_filenam
             f.write("MODEL " + str(frame_idx) + "\n")
 
             # Get the coordinates for the current frame.
-            frame_coors_delta = numpy.dot(frame_coeffs, vect_components)
-            frame_coors_delta_3d = numpy.reshape(frame_coors_delta, (len(frame_coors_delta) / 3,3))
-            frame_coors = coords_avg_atoms + frame_coors_delta_3d
+            frame_coors_delta = np.dot(frame_coeffs, vect_components)
+            frame_coors = coords_first_frame + frame_coors_delta
+            frame_coors_3d = np.reshape(frame_coors, (len(frame_coors) / 3,3))
 
             # Go through each of the coordinates in this frame.
-            for x, y, z in frame_coors:
+            for x, y, z in frame_coors_3d:
                 # Make a PDB line
                 pdb_line = "ATOM  " + str(frame_idx).rjust(5) + \
                            atomName.rjust(5) + resName.rjust(4) + \
@@ -160,11 +216,11 @@ if __name__ == '__main__':
     # Load a trajectory for coor_file, aligning it if it is the first.
     if coor_file is not None:
         traj = _Utils.load_traj(
-            top_file, coor_file, align_sel=params['align_sel']
+            top_file, coor_file, align=False  # align_sel=params['align_sel']
         )
     else:
         traj = _Utils.load_traj(
-            top_file, align_sel=params['align_sel']
+            top_file, align=False  # align_sel=params['align_sel']
         )
 
     # Stride or trim the trajectory as desired, this transfers the trajectory
@@ -183,7 +239,7 @@ if __name__ == '__main__':
 
     # Calculate trajectory on principal components and retrieve PCA
     # information
-    vect_components, PCA_coeff, coords_avg_atoms, coords_first_frame, data_json_info = get_PCA_trajectory(
+    vect_components, PCA_coeff, coords_first_frame, data_json_info = get_PCA_trajectory(
         traj, params['selection'], params['cum_var']
     )
 
@@ -193,13 +249,12 @@ if __name__ == '__main__':
 
     # Compress information further by rounding and converting to ints. Save to
     # dictionary to be outputted as a json.
-
     my_dict = {}
     my_dict['vecs'] = _Utils.compress_list(vect_components, num_decimals)
     my_dict['coeffs'] = _Utils.compress_list(PCA_coeff, num_decimals)
-    my_dict['coors'] = _Utils.compress_list(
-        coords_avg_atoms, num_decimals, is_coor=True
-    )
+    # my_dict['coors'] = _Utils.compress_list(
+    #     coords_avg_atoms, num_decimals, is_coor=True
+    # )
     my_dict['first_coors'] = _Utils.compress_list(
         coords_first_frame, num_decimals, is_coor=True
     )
@@ -223,4 +278,4 @@ if __name__ == '__main__':
         write_file.write(json_txt)
 
     # Test it
-    un_pca(vect_components, PCA_coeff, coords_avg_atoms, output_name)
+    un_pca(vect_components, PCA_coeff, coords_first_frame, "test.pdb") # output_name)
