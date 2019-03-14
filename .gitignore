@@ -2,3 +2,6 @@ jsmol
 closure.errs.txt
 test_files/*compressed.json*
 *.pyc
+.vscode
+.DS_Store
+old*
