@@ -68,8 +68,12 @@ def get_PCA_trajectory(traj, selection, cum_var):
     # desired variance.
     var = pca.explained_variance_ratio_
     cumulated_variance = np.array([np.sum(var[:i+1]) for i in range(var.size)])
-    where_var_ok = np.where(cumulated_variance > cum_var)[0]
-    n_pcs = cumulated_variance.size if where_var_ok.size == 0 else where_var_ok[0]
+    idxs_of_above_cum_var = np.where(cumulated_variance > cum_var)[0]
+
+    # If there are no components above threshold (because cum_var == 1.0),
+    # keep all components. If not, keep only the number required to account
+    # for the user-specified variance.
+    n_pcs = cumulated_variance.size if idxs_of_above_cum_var.size == 0 else idxs_of_above_cum_var[0]
 
     # Keep only the appropriate number of components and coefficients.
     pca_vectors = pca_vectors[:n_pcs]

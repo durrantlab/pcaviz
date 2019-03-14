@@ -65,12 +65,12 @@ def demo_HTML(page):
 
                     window.browserSim = browserSim;
 
-                    setTimeout(() => {
-                        browserSim.player.stop();
-                        setTimeout(() => {
-                            browserSim.player.toFrame(159);
-                        }, 1000);
-                    }, 5000);
+                    // setTimeout(() => {
+                    //    browserSim.player.stop();
+                    //    setTimeout(() => {
+                    //        browserSim.player.toFrame(159);
+                    //    }, 1000);
+                    // }, 5000);
                 });
             }
             makeBrowserSim(viewer, '""" + page.id + """');
