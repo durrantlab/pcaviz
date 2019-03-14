@@ -111,53 +111,6 @@ def get_PCA_trajectory(traj, selection, cum_var):
     # Return only the information necessary for compression and expansion.
     return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, coords_first_frame, data_json
 
-def un_pca(vect_components, PCA_coeff, coords_first_frame, compressed_json_filename):
-    """A temporary function that should "undo" to PCA (back to Cartesian space).
-
-    :param vect_components: The PCA vectors.
-    :type vect_components: numpy.array
-    :param PCA_coeff: The PCA coefficients for each frame.
-    :type PCA_coeff: numpy.array
-    :param coords_first_frame: The first-frame coordinates.
-    :type coords_first_frame: numpy.array
-    :param compressed_json_filename: The name of the compressed json file.
-    :type compressed_json_filename: string.
-    """
-
-    # Dummy variables.
-    atomName = "X"
-    resName = "XXX"
-    chain = "X"
-    resID = "0"
-    element = "X"
-
-    with open(compressed_json_filename + ".uncompressed.pdb", "w") as f:
-
-        # Go through each of the frames.
-        for frame_idx, frame_coeffs in enumerate(PCA_coeff):
-            f.write("MODEL " + str(frame_idx) + "\n")
-
-            # Get the coordinates for the current frame.
-            frame_coors_delta = np.dot(frame_coeffs, vect_components)
-            frame_coors = coords_first_frame + frame_coors_delta
-            frame_coors_3d = np.reshape(frame_coors, (len(frame_coors) / 3,3))
-
-            # Go through each of the coordinates in this frame.
-            for x, y, z in frame_coors_3d:
-                # Make a PDB line
-                pdb_line = "ATOM  " + str(frame_idx).rjust(5) + \
-                           atomName.rjust(5) + resName.rjust(4) + \
-                           " " + chain + resID.rjust(4) + "    " + \
-                           "{:8.3f}{:8.3f}{:8.3f}" + \
-                           "  1.00  0.00          " + \
-                           element + "  \n"
-
-                pdb_line = pdb_line.format(x, y, z)
-
-                f.write(pdb_line)
-
-            f.write("ENDMDL\n")
-
 # Main function.
 if __name__ == '__main__':
     # Get user provided parameters and unpack frequently used parameters
@@ -229,6 +182,3 @@ if __name__ == '__main__':
     # Write the file.
     with open(output_name, 'w') as write_file:
         write_file.write(json_txt)
-
-    # Test it
-    un_pca(vect_components, PCA_coeff, coords_first_frame, output_name + ".pdb")
