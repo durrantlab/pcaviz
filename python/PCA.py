@@ -56,19 +56,32 @@ def get_PCA_trajectory(traj, selection, cum_var):
         coor_data.append(frame.positions[idx_of_selected_atoms].ravel())
     coor_data = np.array(coor_data)
 
-    # Calculate all the principal components.
+    # Append coordinates to python list then use ravel to flatten coordinates without
+    # having to allocate new memory
+    # Turning coord list into numpy array because it reduces memory consumption
+    # You get a flatten numpy array containing the coordinates
     pca = PCA(n_components=min(coor_data.shape))
     pca.fit(coor_data)
     pca_vectors = pca.components_
 
+    # Number of components should be equal to number of elements in coor_data array
+    # Number of principal components = 3xs the number of atoms
+    # pca.fit fits model to coordinate data
+    # PCA vectors contain principal axes in PCA space, show max variance in data
+
     # Also get the coefficients for each frame.
     coords_project_onto_pca_space = pca.transform(coor_data)
+
+    # coords_projected_onto_pca_space applies PCA dimensionality reduction to coor_data
 
     # Calculate how many components are required to cumulatively explain the
     # desired variance.
     var = pca.explained_variance_ratio_
     cumulated_variance = np.array([np.sum(var[:i+1]) for i in range(var.size)])
     idxs_of_above_cum_var = np.where(cumulated_variance >= cum_var)[0]
+
+    # var = % of variance explained by each of the selected components cum_var
+    # sums up the % of variance explained by the components
 
     # If there are no components above threshold (because cum_var == 1.0),
     # keep all components. If not, keep only the number required to account
