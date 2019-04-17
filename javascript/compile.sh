@@ -10,8 +10,9 @@ echo "Closure compile."
 # export formatting="--formatting=PRETTY_PRINT"
 export formatting=""
 
+# --externs='utils/jquery-1.9.js'
 java -jar utils/closure-compiler-v20180506.jar $formatting \
-   --compilation_level=ADVANCED_OPTIMIZATIONS --externs='utils/jquery-1.9.js' \
+   --compilation_level=ADVANCED_OPTIMIZATIONS \
    --externs='utils/custom_extern.js' --js_output_file='BrowserSim.min.js' 'BrowserSim.js' \
    2> closure.errs.txt
 

@@ -1,4 +1,3 @@
-declare var jQuery;
 declare var THREE;
 declare var process;
 
@@ -19,6 +18,7 @@ interface Params {
     "loadPDBTxt"?: any;           // Used if generic interface
     "updateAtomPositions"?: any;  // Used if generic interface
     "render"?: any;               // Used if generic interface
+    "playerControls"?: boolean;   // Add player controls if true.
 }
 
 // (<any>window).requestAnimationFrame;
@@ -97,6 +97,7 @@ class BrowserSim {
             "caching": "none",
             "cacheModeNum": 0,  // corresponds to caching none.
             "windowAverageSize": 1,
+            "playerControls": true,  // Player controls by default.
             "parent": this,
             "loadPDBTxt": (pdbTxt: string, viewer?: any, browserSim?: any) => {
                 throw new Error(
@@ -142,7 +143,7 @@ class BrowserSim {
             }
         }
 
-        this._params = jQuery.extend(defaults, this._params, updatedParams);
+        this._params = jjQuery.extend(defaults, this._params, updatedParams);
 
         // halfWindowSize is always derived from windowAverageSize
         this._params["halfWindowSize"] = Math.floor((this._params["windowAverageSize"] - 1) / 2);
@@ -323,7 +324,7 @@ class _IO {
      * @returns void
      */
     public "loadJSON"(path: string, callBack: any = () => {}): void {
-        jQuery.getJSON(path, (data: any) => {
+        jjQuery.getJSON(path, (data: any) => {
             // Get some general info about the data.
             this._parent._frameSize = data["coeffs"][0].length;
             this._parent._numComponents = data["vecs"].length;
@@ -355,11 +356,14 @@ class _IO {
 
             // Create a PDB file from the JSON and load it.
             this._makePDBFromJSON(data);
-        }).done(() => {
+
+            // Fire the callback.
+            callBack();
+        }); /*.done(() => {
             callBack();
         }).fail(() => {
             console.log( "error" );
-        }); /* .always(function() {
+        }); *//* .always(function() {
             console.log( "complete" );
         }); */
     };
@@ -885,14 +889,15 @@ class _Player {
             cancelAnimationFrame(this._animationFrameID);
         }
 
+        let timestampLastFire: number = 0;
+
         /**
          * The loop function.
          * @param  {number} timestamp The number of milliseconds since the
          * requestAnimationFrame started.
          */
-        let timestampLastFire = 0;
         let loop = (timestamp: number) => {
-            let msSinceLastFire = timestamp - timestampLastFire;
+            let msSinceLastFire: number = timestamp - timestampLastFire;
 
             // Enough time has passed that we should update.
             if (msSinceLastFire > this._parent._params["updateFreqInMilliseconds"]) {
@@ -1002,6 +1007,71 @@ module MathUtils {
     }
 }
 
+// SVGs of the play buttons.
+let images = {
+    "play": `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+        x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
+        <path fill="#010101" stroke="#010101" stroke-width="6.6449" stroke-linejoin="round" d="M7.1,36.4L32.9,20L7.1,3.6V36.4z"/>
+        </svg>`,
+    "stop": `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+        x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
+        <path fill="#010101" stroke="#010101" stroke-width="6.3" stroke-linejoin="round" d="M3.9,3.5h32.3c0.2,0,0.4,0.1,0.4,0.3l0,0v32.3
+        c0,0.2-0.2,0.3-0.4,0.3l0,0H3.9c-0.2,0-0.4-0.1-0.4-0.3l0,0V3.8C3.5,3.7,3.7,3.5,3.9,3.5L3.9,3.5"/>
+        </svg>`,
+    "pause": `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+        x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
+        <g>
+        <path fill="#010101" stroke="#010101" stroke-width="6.4134" stroke-linejoin="round" d="M3.7,3.5H15c0.1,0,0.1,0.1,0.1,0.3v32.3
+        c0,0.2-0.1,0.3-0.1,0.3H3.7c-0.1,0-0.1-0.1-0.1-0.3V3.9C3.5,3.7,3.6,3.5,3.7,3.5"/>
+        <path fill="#010101" stroke="#010101" stroke-width="6.4134" stroke-linejoin="round" d="M25,3.5h11.4c0.1,0,0.1,0.1,0.1,0.3v32.3
+        c0,0.2-0.1,0.3-0.1,0.3H25c-0.1,0-0.1-0.1-0.1-0.3V3.9C24.8,3.7,24.9,3.5,25,3.5"/>
+        </g>
+        </svg>`
+}
+
+// I don't want to require jQuery, but I need some of its functions.
+namespace jjQuery {
+
+    /**
+     * Extends an object with two additional objects. Inspired by
+     * jQuery.extend.
+     * @param  {Object<string, *>} a  The first object.
+     * @param  {Object<string, *>} b  The second object.
+     * @param  {Object<string, *>} c  The third object.
+     * @returns The extended object.
+     */
+    export function extend(a: any, b: any, c: any): any {
+        for (let k in b) {
+            if (b.hasOwnProperty(k)) { a[k] = b[k]; }
+        }
+        for (let k in c) {
+            if (c.hasOwnProperty(k)) { a[k] = c[k]; }
+        }
+        return a;
+    }
+
+    /**
+     * Gets JSON from a remote file. Inspired by jQuery.getJSON.
+     * @param  {string}       path          The remote URL.
+     * @param  {function(*)}  callBackFunc  A callback function once done.
+     * @returns void
+     */
+    export function getJSON(path: string, callBackFunc: any): void {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {  // Shouldn't be arrow func.
+            if (this.readyState == 4 && this.status == 200) {
+                callBackFunc(
+                    JSON.parse(
+                        this.responseText
+                    )
+                );
+            }
+        };
+        xhttp.open("GET", path, true);
+        xhttp.send();
+    }
+}
+
 let runningUnderNodeJS = false;
 try {
     window;
@@ -1051,51 +1121,27 @@ if (!runningUnderNodeJS) {
     // Get the json file from the command line and make the trajectory.
     let jsonFile = process.argv[2];
 
-    // Make a fake jQuery.getJSON function.
+    // Make a fake jQuery.getJSON function. Overwriting the existing one to
+    // work with node.js.
     let jsonData;
-    global.jQuery = {
-        getJSON: (path: string, callBackFunc: any) => {
-            let fs = require("fs");
-            // return new Promise((fulfill, reject) => {
-            //     fs.readFile(path, 'utf8').done((content) => {
-            //         let contentJSON = JSON.parse(content);
-            //         callBackFunc(contentJSON);
-            //         try {
-            //             fulfill(JSON.parse(content));
-            //         } catch (ex) {
-            //             reject(ex);
-            //         }
-            //     }, reject);
-            // });
+    jjQuery.getJSON = function(path: string, callBackFunc: any) {
+        let fs = require("fs");
 
-            let content = fs.readFileSync(jsonFile);
-            let jsonData = JSON.parse(content);
-            callBackFunc(jsonData);
+        let content = fs.readFileSync(jsonFile);
+        let jsonData = JSON.parse(content);
+        callBackFunc(jsonData);
 
-            return {
-                done: function (func) {
-                    func();
-                    return {
-                        fail: function (func) {
-                            // Never allow fail.
-                            // func();
-                            return;
-                        }
+        return {
+            done: function (func) {
+                func();
+                return {
+                    fail: function (func) {
+                        // Never allow fail.
+                        // func();
+                        return;
                     }
-                },
-            }
-            // return new Promise(function (fulfill, reject) {
-            //     return;
-            // });
-        },
-        extend: (a: any, b: any, c: any) => {
-            for (let k in b) {
-                if (b.hasOwnProperty(k)) { a[k] = b[k]; }
-            }
-            for (let k in c) {
-                if (c.hasOwnProperty(k)) { a[k] = c[k]; }
-            }
-            return a;
+                }
+            },
         }
     }
 
@@ -1106,19 +1152,7 @@ if (!runningUnderNodeJS) {
         windowAverageSize: 1,
         loadPDBTxt: (pdbTxt, viewer, browserSim) => { return; },  // viewer.addModel(pdbTxt, "pdb"),
         updateAtomPositions: (newAtomCoors, model, viewer, browserSim) => { return ; },
-        //     var atoms = model.selectedAtoms({});
-        //     for (let atomIdx=0; atomIdx<atoms.length; atomIdx++) {
-        //         let coors = newAtomCoors[atomIdx];
-        //         atoms[atomIdx]["x"] = coors[0];
-        //         atoms[atomIdx]["y"] = coors[1];
-        //         atoms[atomIdx]["z"] = coors[2];
-        //     }
-        // },
         render: (model, viewer, browserSim) => {
-            // model.setStyle(
-            //     {}, { sphere: { color: "green" }}
-            // );
-            // viewer.render();
             return;
         },
     });

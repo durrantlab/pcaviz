@@ -63,6 +63,7 @@ var BrowserSim = /** @class */ (function () {
             "caching": "none",
             "cacheModeNum": 0,
             "windowAverageSize": 1,
+            "playerControls": true,
             "parent": this,
             "loadPDBTxt": function (pdbTxt, viewer, browserSim) {
                 throw new Error(genericModeBut +
@@ -101,7 +102,7 @@ var BrowserSim = /** @class */ (function () {
                     ' ' + viewerVar + ' ' + browserSimVar + "\n\n");
             }
         };
-        this._params = jQuery.extend(defaults, this._params, updatedParams);
+        this._params = jjQuery.extend(defaults, this._params, updatedParams);
         // halfWindowSize is always derived from windowAverageSize
         this._params["halfWindowSize"] = Math.floor((this._params["windowAverageSize"] - 1) / 2);
         // Default visStyle depends on viewerType
@@ -254,7 +255,7 @@ var _IO = /** @class */ (function () {
     _IO.prototype["loadJSON"] = function (path, callBack) {
         var _this = this;
         if (callBack === void 0) { callBack = function () { }; }
-        jQuery.getJSON(path, function (data) {
+        jjQuery.getJSON(path, function (data) {
             // Get some general info about the data.
             _this._parent._frameSize = data["coeffs"][0].length;
             _this._parent._numComponents = data["vecs"].length;
@@ -279,11 +280,13 @@ var _IO = /** @class */ (function () {
             _this._loadJSONSetupFirstFramePos(data, precisionFactor);
             // Create a PDB file from the JSON and load it.
             _this._makePDBFromJSON(data);
-        }).done(function () {
+            // Fire the callback.
             callBack();
-        }).fail(function () {
-            console.log("error");
-        }); /* .always(function() {
+        }); /*.done(() => {
+            callBack();
+        }).fail(() => {
+            console.log( "error" );
+        }); */ /* .always(function() {
             console.log( "complete" );
         }); */
     };
@@ -736,12 +739,12 @@ var _Player = /** @class */ (function () {
         if (this._animationFrameID !== undefined) {
             cancelAnimationFrame(this._animationFrameID);
         }
+        var timestampLastFire = 0;
         /**
          * The loop function.
          * @param  {number} timestamp The number of milliseconds since the
          * requestAnimationFrame started.
          */
-        var timestampLastFire = 0;
         var loop = function (timestamp) {
             var msSinceLastFire = timestamp - timestampLastFire;
             // Enough time has passed that we should update.
@@ -846,6 +849,55 @@ var MathUtils;
     }
     MathUtils.multiplyFloat32ArrayByScalar = multiplyFloat32ArrayByScalar;
 })(MathUtils || (MathUtils = {}));
+// SVGs of the play buttons.
+var images = {
+    "play": "<svg version=\"1.2\" baseProfile=\"tiny\" id=\"Layer_1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n        x=\"0px\" y=\"0px\" width=\"40px\" height=\"40px\" viewBox=\"0 0 40 40\" xml:space=\"preserve\">\n        <path fill=\"#010101\" stroke=\"#010101\" stroke-width=\"6.6449\" stroke-linejoin=\"round\" d=\"M7.1,36.4L32.9,20L7.1,3.6V36.4z\"/>\n        </svg>",
+    "stop": "<svg version=\"1.2\" baseProfile=\"tiny\" id=\"Layer_1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n        x=\"0px\" y=\"0px\" width=\"40px\" height=\"40px\" viewBox=\"0 0 40 40\" xml:space=\"preserve\">\n        <path fill=\"#010101\" stroke=\"#010101\" stroke-width=\"6.3\" stroke-linejoin=\"round\" d=\"M3.9,3.5h32.3c0.2,0,0.4,0.1,0.4,0.3l0,0v32.3\n        c0,0.2-0.2,0.3-0.4,0.3l0,0H3.9c-0.2,0-0.4-0.1-0.4-0.3l0,0V3.8C3.5,3.7,3.7,3.5,3.9,3.5L3.9,3.5\"/>\n        </svg>",
+    "pause": "<svg version=\"1.2\" baseProfile=\"tiny\" id=\"Layer_1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n        x=\"0px\" y=\"0px\" width=\"40px\" height=\"40px\" viewBox=\"0 0 40 40\" xml:space=\"preserve\">\n        <g>\n        <path fill=\"#010101\" stroke=\"#010101\" stroke-width=\"6.4134\" stroke-linejoin=\"round\" d=\"M3.7,3.5H15c0.1,0,0.1,0.1,0.1,0.3v32.3\n        c0,0.2-0.1,0.3-0.1,0.3H3.7c-0.1,0-0.1-0.1-0.1-0.3V3.9C3.5,3.7,3.6,3.5,3.7,3.5\"/>\n        <path fill=\"#010101\" stroke=\"#010101\" stroke-width=\"6.4134\" stroke-linejoin=\"round\" d=\"M25,3.5h11.4c0.1,0,0.1,0.1,0.1,0.3v32.3\n        c0,0.2-0.1,0.3-0.1,0.3H25c-0.1,0-0.1-0.1-0.1-0.3V3.9C24.8,3.7,24.9,3.5,25,3.5\"/>\n        </g>\n        </svg>"
+};
+// I don't want to require jQuery, but I need some of its functions.
+var jjQuery;
+(function (jjQuery) {
+    /**
+     * Extends an object with two additional objects. Inspired by
+     * jQuery.extend.
+     * @param  {Object<string, *>} a  The first object.
+     * @param  {Object<string, *>} b  The second object.
+     * @param  {Object<string, *>} c  The third object.
+     * @returns The extended object.
+     */
+    function extend(a, b, c) {
+        for (var k in b) {
+            if (b.hasOwnProperty(k)) {
+                a[k] = b[k];
+            }
+        }
+        for (var k in c) {
+            if (c.hasOwnProperty(k)) {
+                a[k] = c[k];
+            }
+        }
+        return a;
+    }
+    jjQuery.extend = extend;
+    /**
+     * Gets JSON from a remote file. Inspired by jQuery.getJSON.
+     * @param  {string}       path          The remote URL.
+     * @param  {function(*)}  callBackFunc  A callback function once done.
+     * @returns void
+     */
+    function getJSON(path, callBackFunc) {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                callBackFunc(JSON.parse(this.responseText));
+            }
+        };
+        xhttp.open("GET", path, true);
+        xhttp.send();
+    }
+    jjQuery.getJSON = getJSON;
+})(jjQuery || (jjQuery = {}));
 var runningUnderNodeJS = false;
 try {
     window;
@@ -891,54 +943,26 @@ else {
     // that here.
     // Get the json file from the command line and make the trajectory.
     var jsonFile_1 = process.argv[2];
-    // Make a fake jQuery.getJSON function.
+    // Make a fake jQuery.getJSON function. Overwriting the existing one to
+    // work with node.js.
     var jsonData_1;
-    global.jQuery = {
-        getJSON: function (path, callBackFunc) {
-            var fs = require("fs");
-            // return new Promise((fulfill, reject) => {
-            //     fs.readFile(path, 'utf8').done((content) => {
-            //         let contentJSON = JSON.parse(content);
-            //         callBackFunc(contentJSON);
-            //         try {
-            //             fulfill(JSON.parse(content));
-            //         } catch (ex) {
-            //             reject(ex);
-            //         }
-            //     }, reject);
-            // });
-            var content = fs.readFileSync(jsonFile_1);
-            var jsonData = JSON.parse(content);
-            callBackFunc(jsonData);
-            return {
-                done: function (func) {
-                    func();
-                    return {
-                        fail: function (func) {
-                            // Never allow fail.
-                            // func();
-                            return;
-                        }
-                    };
-                },
-            };
-            // return new Promise(function (fulfill, reject) {
-            //     return;
-            // });
-        },
-        extend: function (a, b, c) {
-            for (var k in b) {
-                if (b.hasOwnProperty(k)) {
-                    a[k] = b[k];
-                }
-            }
-            for (var k in c) {
-                if (c.hasOwnProperty(k)) {
-                    a[k] = c[k];
-                }
-            }
-            return a;
-        }
+    jjQuery.getJSON = function (path, callBackFunc) {
+        var fs = require("fs");
+        var content = fs.readFileSync(jsonFile_1);
+        var jsonData = JSON.parse(content);
+        callBackFunc(jsonData);
+        return {
+            done: function (func) {
+                func();
+                return {
+                    fail: function (func) {
+                        // Never allow fail.
+                        // func();
+                        return;
+                    }
+                };
+            },
+        };
     };
     // Now create the
     var browserSim_1 = new BrowserSim({
@@ -947,19 +971,7 @@ else {
         windowAverageSize: 1,
         loadPDBTxt: function (pdbTxt, viewer, browserSim) { return; },
         updateAtomPositions: function (newAtomCoors, model, viewer, browserSim) { return; },
-        //     var atoms = model.selectedAtoms({});
-        //     for (let atomIdx=0; atomIdx<atoms.length; atomIdx++) {
-        //         let coors = newAtomCoors[atomIdx];
-        //         atoms[atomIdx]["x"] = coors[0];
-        //         atoms[atomIdx]["y"] = coors[1];
-        //         atoms[atomIdx]["z"] = coors[2];
-        //     }
-        // },
         render: function (model, viewer, browserSim) {
-            // model.setStyle(
-            //     {}, { sphere: { color: "green" }}
-            // );
-            // viewer.render();
             return;
         },
     });
