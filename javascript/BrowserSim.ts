@@ -18,7 +18,7 @@ interface Params {
     "loadPDBTxt"?: any;           // Used if generic interface
     "updateAtomPositions"?: any;  // Used if generic interface
     "render"?: any;               // Used if generic interface
-    "playerControls"?: boolean;   // Add player controls if true.
+    "playerControlsID"?: string;  // Add player controls to div with this ID.
 }
 
 // (<any>window).requestAnimationFrame;
@@ -49,6 +49,8 @@ class BrowserSim {
 
     public _cachedFrameCoors = {};
 
+    private _playerControls;
+
     /**
      * Constructor for the BrowserSim class.
      * @param  {Object<string,*>} params
@@ -68,6 +70,8 @@ class BrowserSim {
             this["viewer"] = new _Viewer(this);
             this["player"] = new _Player(this);
         }
+
+        this._playerControls = new _PlayerControls(this);
     }
 
     /**
@@ -97,7 +101,7 @@ class BrowserSim {
             "caching": "none",
             "cacheModeNum": 0,  // corresponds to caching none.
             "windowAverageSize": 1,
-            "playerControls": true,  // Player controls by default.
+            "playerControlsID": "",  // Player controls by default.
             "parent": this,
             "loadPDBTxt": (pdbTxt: string, viewer?: any, browserSim?: any) => {
                 throw new Error(
@@ -872,6 +876,12 @@ class _Player {
      */
     constructor(parent: any) {
         this._parent = parent;
+
+        // You should automatically stop if the tab looses focus. Doing this
+        // to prevent overheating laptops.
+        window.onblur = () => {
+            this["stop"]();
+        };
     }
 
     /**
@@ -890,14 +900,25 @@ class _Player {
         }
 
         let timestampLastFire: number = 0;
+        let deltaStartRatio: number = this._parent._playerControls.getSliderValue();
+        let loopTimestampOnStart = undefined;
+        let msSinceLastFire: number = undefined;
+        let playRatio: number = undefined;
+        let curFrame: number = undefined;
 
         /**
-         * The loop function.
+         * The loop function. Note that this needs to be VERY optimized. Keep
+         * if statements and such to a minimum.
          * @param  {number} timestamp The number of milliseconds since the
-         * requestAnimationFrame started.
+         *                            requestAnimationFrame started.
          */
         let loop = (timestamp: number) => {
-            let msSinceLastFire: number = timestamp - timestampLastFire;
+            loopTimestampOnStart = (loopTimestampOnStart === undefined) ? timestamp : loopTimestampOnStart;
+
+            // Redefine timestamp so it starts from 0 every time play is pressed.
+            timestamp = timestamp - loopTimestampOnStart;
+
+            msSinceLastFire = timestamp - timestampLastFire;  //  - loopTimestampOnStart;
 
             // Enough time has passed that we should update.
             if (msSinceLastFire > this._parent._params["updateFreqInMilliseconds"]) {
@@ -905,19 +926,22 @@ class _Player {
                 timestampLastFire = timestamp;
 
                 // How far along the animation are you?
-                let playRatio = (timestamp / this._parent._params["durationInMilliseconds"]) % 1.0;
+                playRatio = (deltaStartRatio + timestamp / this._parent._params["durationInMilliseconds"]) % 1.0;
 
-                // If you've gone over the end of the animation, start again from
-                // the beginning.
+                // If you've gone over the end of the animation and it's not
+                // set to loop, stop.
                 if ((!this._parent._params["loop"]) && (playRatio > 1.0)) {
                     this["stop"]();
                     return;
                 }
 
                 // Get the current frame.
-                let curFrame = Math.floor(this._parent._numFramesTotal * playRatio);
+                curFrame = Math.floor(this._parent._numFramesTotal * playRatio);
 
                 this._parent["viewer"].updateAtomPos(curFrame);
+
+                // Also update UI.
+                this._parent._playerControls.setSlider(curFrame);
             }
 
             // Start the next iteration.
@@ -927,6 +951,9 @@ class _Player {
         }
 
         this._animationFrameID = requestAnimationFrame(loop);
+
+        // Change ui if it is active.
+        this._parent._playerControls.onPlayStart();
     }
 
     /**
@@ -939,6 +966,8 @@ class _Player {
             cancelAnimationFrame(this._animationFrameID);
             this._animationFrameID = undefined;
         }
+
+        this._parent._playerControls.onPlayStop();
     }
 
     /**
@@ -1007,26 +1036,141 @@ module MathUtils {
     }
 }
 
-// SVGs of the play buttons.
-let images = {
-    "play": `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-        x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
-        <path fill="#010101" stroke="#010101" stroke-width="6.6449" stroke-linejoin="round" d="M7.1,36.4L32.9,20L7.1,3.6V36.4z"/>
-        </svg>`,
-    "stop": `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-        x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
-        <path fill="#010101" stroke="#010101" stroke-width="6.3" stroke-linejoin="round" d="M3.9,3.5h32.3c0.2,0,0.4,0.1,0.4,0.3l0,0v32.3
-        c0,0.2-0.2,0.3-0.4,0.3l0,0H3.9c-0.2,0-0.4-0.1-0.4-0.3l0,0V3.8C3.5,3.7,3.7,3.5,3.9,3.5L3.9,3.5"/>
-        </svg>`,
-    "pause": `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-        x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
-        <g>
-        <path fill="#010101" stroke="#010101" stroke-width="6.4134" stroke-linejoin="round" d="M3.7,3.5H15c0.1,0,0.1,0.1,0.1,0.3v32.3
-        c0,0.2-0.1,0.3-0.1,0.3H3.7c-0.1,0-0.1-0.1-0.1-0.3V3.9C3.5,3.7,3.6,3.5,3.7,3.5"/>
-        <path fill="#010101" stroke="#010101" stroke-width="6.4134" stroke-linejoin="round" d="M25,3.5h11.4c0.1,0,0.1,0.1,0.1,0.3v32.3
-        c0,0.2-0.1,0.3-0.1,0.3H25c-0.1,0-0.1-0.1-0.1-0.3V3.9C24.8,3.7,24.9,3.5,25,3.5"/>
-        </g>
-        </svg>`
+class _PlayerControls {
+    private _parent = undefined;
+    private _playDOM = undefined;
+    private _pauseDOM = undefined;
+    private _sliderDOM = undefined;
+    private _uiActive = false;
+
+    // SVGs of the play buttons.
+    private _images = {
+        play: `data:image/svg+xml;charset=utf-8;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIGJhc2VQcm9maWxlPSJ0aW55IiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayINCng9IjBweCIgeT0iMHB4IiB3aWR0aD0iNDBweCIgaGVpZ2h0PSI0MHB4IiB2aWV3Qm94PSIwIDAgNDAgNDAiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPHBhdGggZmlsbD0iIzAxMDEwMSIgc3Ryb2tlPSIjMDEwMTAxIiBzdHJva2Utd2lkdGg9IjYuNjQ0OSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTcuMSwzNi40TDMyLjksMjBMNy4xLDMuNlYzNi40eiIvPg0KPC9zdmc+`,
+        // play: `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+        //     x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
+        //     <path fill="#010101" stroke="#010101" stroke-width="6.6449" stroke-linejoin="round" d="M7.1,36.4L32.9,20L7.1,3.6V36.4z"/>
+        //     </svg>`,
+        // stop: `data:image/svg+xml;charset=utf-8;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIGJhc2VQcm9maWxlPSJ0aW55IiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayINCng9IjBweCIgeT0iMHB4IiB3aWR0aD0iNDBweCIgaGVpZ2h0PSI0MHB4IiB2aWV3Qm94PSIwIDAgNDAgNDAiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPHBhdGggZmlsbD0iIzAxMDEwMSIgc3Ryb2tlPSIjMDEwMTAxIiBzdHJva2Utd2lkdGg9IjYuMyIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTMuOSwzLjVoMzIuM2MwLjIsMCwwLjQsMC4xLDAuNCwwLjNsMCwwdjMyLjMNCmMwLDAuMi0wLjIsMC4zLTAuNCwwLjNsMCwwSDMuOWMtMC4yLDAtMC40LTAuMS0wLjQtMC4zbDAsMFYzLjhDMy41LDMuNywzLjcsMy41LDMuOSwzLjVMMy45LDMuNSIvPg0KPC9zdmc+`,
+        // stop: `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+        //     x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
+        //     <path fill="#010101" stroke="#010101" stroke-width="6.3" stroke-linejoin="round" d="M3.9,3.5h32.3c0.2,0,0.4,0.1,0.4,0.3l0,0v32.3
+        //     c0,0.2-0.2,0.3-0.4,0.3l0,0H3.9c-0.2,0-0.4-0.1-0.4-0.3l0,0V3.8C3.5,3.7,3.7,3.5,3.9,3.5L3.9,3.5"/>
+        //     </svg>`,
+        pause: `data:image/svg+xml;charset=utf-8;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIGJhc2VQcm9maWxlPSJ0aW55IiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayINCng9IjBweCIgeT0iMHB4IiB3aWR0aD0iNDBweCIgaGVpZ2h0PSI0MHB4IiB2aWV3Qm94PSIwIDAgNDAgNDAiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQo8cGF0aCBmaWxsPSIjMDEwMTAxIiBzdHJva2U9IiMwMTAxMDEiIHN0cm9rZS13aWR0aD0iNi40MTM0IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBkPSJNMy43LDMuNUgxNWMwLjEsMCwwLjEsMC4xLDAuMSwwLjN2MzIuMw0KYzAsMC4yLTAuMSwwLjMtMC4xLDAuM0gzLjdjLTAuMSwwLTAuMS0wLjEtMC4xLTAuM1YzLjlDMy41LDMuNywzLjYsMy41LDMuNywzLjUiLz4NCjxwYXRoIGZpbGw9IiMwMTAxMDEiIHN0cm9rZT0iIzAxMDEwMSIgc3Ryb2tlLXdpZHRoPSI2LjQxMzQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGQ9Ik0yNSwzLjVoMTEuNGMwLjEsMCwwLjEsMC4xLDAuMSwwLjN2MzIuMw0KYzAsMC4yLTAuMSwwLjMtMC4xLDAuM0gyNWMtMC4xLDAtMC4xLTAuMS0wLjEtMC4zVjMuOUMyNC44LDMuNywyNC45LDMuNSwyNSwzLjUiLz4NCjwvZz4NCjwvc3ZnPg==`
+        // pause: `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+        //     x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
+        //     <g>
+        //     <path fill="#010101" stroke="#010101" stroke-width="6.4134" stroke-linejoin="round" d="M3.7,3.5H15c0.1,0,0.1,0.1,0.1,0.3v32.3
+        //     c0,0.2-0.1,0.3-0.1,0.3H3.7c-0.1,0-0.1-0.1-0.1-0.3V3.9C3.5,3.7,3.6,3.5,3.7,3.5"/>
+        //     <path fill="#010101" stroke="#010101" stroke-width="6.4134" stroke-linejoin="round" d="M25,3.5h11.4c0.1,0,0.1,0.1,0.1,0.3v32.3
+        //     c0,0.2-0.1,0.3-0.1,0.3H25c-0.1,0-0.1-0.1-0.1-0.3V3.9C24.8,3.7,24.9,3.5,25,3.5"/>
+        //     </g>
+        //     </svg>`
+    }
+
+    /**
+     * The constructor of an _IO class.
+     * @param  {*} parent The parent class (BrowserSim Object).
+     */
+    constructor(parent: BrowserSim) {
+        this._parent = parent;
+
+        if (this._parent._params["playerControlsID"] !== "") {
+            // Record that the UI is active.
+            this._uiActive = true;
+
+            // Get the control div.
+            let controllerDiv = document.getElementById(
+                this._parent._params["playerControlsID"]
+            );
+
+            // Add the content to that div.
+            let randomID = "id " + Math.random().toString().replace(/\./g, "");
+            controllerDiv.innerHTML = `
+                <div class="pcaviz-controls-container" style="display: flex; flex-direction: row;">
+                    <div class="pcaviz-button-container" style="flex: none;">
+                        <button id="${randomID}-play" class="pcaviz-play pcaviz-button" style="height: 100%;">
+                            <img src="${this._images.play}" />
+                        </button>
+                        <button id="${randomID}-pause" class="pcaviz-pause pcaviz-button" style="height: 100%; display: none;">
+                            <img src="${this._images.pause}" />
+                        </button>
+                    </div>
+                    <div class="pcaviz-slider-container" style="flex: auto; display: inline-flex;">
+                        <input id="${randomID}-slider" type="range" min="0" max="100" value="0" style="width: 100%;">
+                    </div>
+                </div>
+            `;
+
+            // Keep track of the components added.
+            this._playDOM = document.getElementById(randomID + "-play");
+            this._pauseDOM = document.getElementById(randomID + "-pause");
+            this._sliderDOM = document.getElementById(randomID + "-slider");
+
+            // Make these elements clickable.
+            this._playDOM.addEventListener("click", () => {
+                console.log(this._parent._params);
+                this._parent["player"]["start"](this._parent._params);
+            });
+            this._pauseDOM.addEventListener("click", () => {
+                this._parent["player"]["stop"]();
+            });
+            this._sliderDOM.onchange = () => {
+                let ratio = this._sliderDOM.value / 100.0;
+                this._parent["player"]["toFrame"](
+                    Math.round(this._parent._numFramesTotal * ratio)
+                );
+            }
+        }
+    }
+
+    /**
+     * Fires when play starts. To update buttons.
+     * @returns void
+     */
+    public onPlayStart(): void {
+        if (this._uiActive === true) {
+            // Make pause button visible.
+            this._playDOM.style.display = "none";
+            this._pauseDOM.style.display = "block";
+        }
+    }
+
+    /**
+     * Fires when play stops. To update buttons,
+     * @returns void
+     */
+    public onPlayStop(): void {
+        if (this._uiActive === true) {
+            // Make pause button visible.
+            this._playDOM.style.display = "block";
+            this._pauseDOM.style.display = "none";
+        }
+    }
+
+    /**
+     * Updates the UI slider.
+     * @param  {number} frame  The frame.
+     * @returns void
+     */
+    public setSlider(frame: number): void {
+        if (this._uiActive === true) {
+            this._sliderDOM.value = Math.round(
+                100 * frame / this._parent._numFramesTotal
+            );
+        }
+    }
+
+    /**
+     * Get's the current slider value, as a ratio.
+     * @returns number  The ratio (0.0 to 1.0).
+     */
+    public getSliderValue(): number {
+        if (this._uiActive === true) {
+            return this._sliderDOM.value / 100.0;
+        }
+        return 0.0;
+    }
 }
 
 // I don't want to require jQuery, but I need some of its functions.

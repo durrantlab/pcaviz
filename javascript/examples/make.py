@@ -27,14 +27,37 @@ def demo_HTML(page):
         extra_browser_sim_params = "\n                    " + extra_browser_sim_params
 
     new_body = """        <style>
-            .mol-container {
+            /* The below position the viewer div and controls div relative to each other. */
+            #vis-and-controls {
                 width: 60%;
                 height: 400px;
                 position: relative;
+                display: flex;
+                flex-direction: column;
+                flex-grow: 1;
             }
+
+            #viscontainer {
+                width: 100%;
+                height: 100%;
+            }
+
+            #controls {
+                min-height: 40px;
+                height: 40px;
+            }
+
+            /* You can also stylize the control buttons. */
+            .pcaviz-button { padding: 7px; }
+            .pcaviz-button img { height: 25px; }
+            .pcaviz-slider-container { padding-left: 10px; }
         </style>
         <h1>""" + page.title + """</h1>
-        """ + ('' if page.title == "JSMol" else '<div id="viscontainer" class="mol-container"></div>\n') + """
+        <div id="vis-and-controls">
+            <div id="viscontainer"></div>
+            <div id="controls"></div>
+        </div>
+
         <!-- Load the javascript files -->
         <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
         """ + "\n        ".join(page.external_js) + """
@@ -52,6 +75,7 @@ def demo_HTML(page):
                     durationInMilliseconds: 10000,
                     updateFreqInMilliseconds: 16.67,  // 60 fps
                     loop: true,
+                    playerControlsID: "controls",
                     windowAverageSize: 1,""" + extra_browser_sim_params + """
                 });
 
