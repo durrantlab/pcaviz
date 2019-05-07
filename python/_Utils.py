@@ -173,19 +173,19 @@ def align_trajectory(traj, align_sel="name CA"):
     return traj
 
 
-def compress_list(to_round, num_decimals, is_coor=False):
+def compress_list(to_round, num_decimals, flatten=False):
     """
     This function compresses a list by rounding its elements to num_decimals places.
 
-    It then converts the elements to integers and flattens the output according to is_coor.
+    It then converts the elements to integers and flattens the output according to flatten.
 
     :param array_like to_round: An array_like containing floats to be compressed.
 
     :param int num_decimals: How many decimal places to round to.
 
-    :param bool is_coor: If True, output list will be flattened. If False list will retain its structure. Defaults to False.
+    :param bool flatten: If True, output list will be flattened. If False list will retain its structure. Defaults to False.
 
-    :return: A basic Python list of ints with shape identical to to_round, or flattened if is_coor set to True.
+    :return: A basic Python list of ints with shape identical to to_round, or flattened if flatten set to True.
     :rtype: :class:'list'
     """
 
@@ -202,7 +202,7 @@ def compress_list(to_round, num_decimals, is_coor=False):
     # We can flatten the coordinates to save a bit more space.
     # Only atomic coordinates can be flattened since other lists'
     # shapes cannot be inferred.
-    if is_coor:
+    if flatten:
         compressed_list = compressed_list.flatten().tolist()
     else:
         compressed_list = compressed_list.tolist()

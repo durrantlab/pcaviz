@@ -79,6 +79,11 @@ def get_params():
                             help='How many decimal places to round PCA ' +\
                                   'vectors, coefficients, and atomic ' +\
                                   'coordinates to. (default is 2)')
+        parser.add_argument('--check_accuracy', action='store_true',
+                            help='If present, PCAViz will create a csv file ' +\
+                                 'containing the RMSD between the original ' +\
+                                 'trajectory and the trajectory following ' +\
+                                 'compression and expansion.')
 
         # Parse the arguments.
         args = parser.parse_args()
