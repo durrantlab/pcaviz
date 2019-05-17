@@ -157,8 +157,8 @@ def expand_PCA(pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, pre
     """
 
     pca_vectors = np.array(pca_vectors) / (10**precision)
-    coords_project_onto_pca_space = np.array(coords_project_onto_pca_space) /
-                                    (10**precision)
+    coords_project_onto_pca_space = np.array(coords_project_onto_pca_space) \
+                                    / (10**precision)
     coords_avg_atoms = np.array(coords_avg_atoms) / (10**precision)
 
 
