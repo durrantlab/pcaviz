@@ -142,10 +142,13 @@ def expand_PCA(pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, pre
                              has been projected.
 
     :param list coords_project_onto_pca_space: The projected trajectory coordinates
-                                               in PCA-space
+                                               in PCA-space.
 
-    :param float cum_var: The amount of variance to be explained cumulatively
-                          by calculated components.
+    :param list coords_avg_atoms: The average atomic coordinated of the
+                                  original trajectory.
+
+    :param int precision: How many decimal places to which the PCA vectors,
+                          projection, and atomic coordinates were rounded.
 
     :returns: The decompressed trajectory. A list containing ndarrays of the atomic
               coordinates at each frame in the same format as an ordinary MDAnalysis
@@ -154,7 +157,8 @@ def expand_PCA(pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, pre
     """
 
     pca_vectors = np.array(pca_vectors) / (10**precision)
-    coords_project_onto_pca_space = np.array(coords_project_onto_pca_space) / (10**precision)
+    coords_project_onto_pca_space = np.array(coords_project_onto_pca_space) /
+                                    (10**precision)
     coords_avg_atoms = np.array(coords_avg_atoms) / (10**precision)
 
 
