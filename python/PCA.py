@@ -132,6 +132,26 @@ def compress_PCA(traj, selection, cum_var):
            coords_first_frame, data_json
 
 def expand_PCA(pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, precision):
+    """
+    This function decompresses a trajectory compressed with the compress_PCA function.
+
+    It uses only the information necessary for expansion back into XYZ-space and 
+    returns a list of the decompressed atomic coordinates.
+
+    :param list pca_vectors: The principal components on which the trajectory
+                             has been projected.
+
+    :param list coords_project_onto_pca_space: The projected trajectory coordinates
+                                               in PCA-space
+
+    :param float cum_var: The amount of variance to be explained cumulatively
+                          by calculated components.
+
+    :returns: The decompressed trajectory. A list containing ndarrays of the atomic
+              coordinates at each frame in the same format as an ordinary MDAnalysis
+              Universe atom_selection.positions field.
+    :rtype: :class:'list'
+    """
 
     pca_vectors = np.array(pca_vectors) / (10**precision)
     coords_project_onto_pca_space = np.array(coords_project_onto_pca_space) / (10**precision)
@@ -196,13 +216,10 @@ if __name__ == '__main__':
 
     # Compress information further by rounding and converting to ints.
     vect_components = _Utils.compress_list(vect_components, num_decimals)
-    print(np.array(vect_components).shape)
     PCA_coeff = _Utils.compress_list(PCA_coeff, num_decimals)
-    print(np.array(PCA_coeff).shape)
     coords_avg_atoms = _Utils.compress_list(coords_avg_atoms,
                                             num_decimals,
                                             flatten=True)
-    print(np.array(coords_avg_atoms).shape)
     coords_first_frame = _Utils.compress_list(coords_first_frame,
                                               num_decimals,
                                               flatten=True)
