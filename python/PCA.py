@@ -155,7 +155,7 @@ def expand_PCA(pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, pre
               Universe atom_selection.positions field.
     :rtype: :class:'list'
     """
-    # print(coords_project_onto_pca_space[0])
+
     pca_vectors = np.true_divide(pca_vectors, (10**precision))
     coords_project_onto_pca_space = np.true_divide(coords_project_onto_pca_space,
                                                    (10**precision))
@@ -164,9 +164,6 @@ def expand_PCA(pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, pre
 
     # Prepare list to hold expanded trajectory coordinates.
     expanded_coordinates = []
-    # print(coords_project_onto_pca_space[0])
-    # print(np.dot(coords_project_onto_pca_space[0], pca_vectors))
-    # print(np.dot(coords_project_onto_pca_space[0], pca_vectors) + coords_avg_atoms)
 
     # Construct each frame's coordinates one at a time.
     for frame_num, frame_coefficients in enumerate(coords_project_onto_pca_space):
