@@ -156,10 +156,10 @@ def expand_PCA(pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, pre
     :rtype: :class:'list'
     """
 
-    pca_vectors = np.array(pca_vectors) / (10**precision)
-    coords_project_onto_pca_space = np.array(coords_project_onto_pca_space) \
-                                    / (10**precision)
-    coords_avg_atoms = np.array(coords_avg_atoms) / (10**precision)
+    pca_vectors = np.true_divide(pca_vectors, (10**precision))
+    coords_project_onto_pca_space = np.true_divide(coords_project_onto_pca_space,
+                                                   (10**precision))
+    coords_avg_atoms = np.true_divide(coords_avg_atoms, (10**precision))
 
 
     # Prepare list to hold expanded trajectory coordinates.
@@ -170,9 +170,6 @@ def expand_PCA(pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, pre
 
         # Calculate flattened XYZ coordinate delta values.
         XYZ_coor_delta = np.dot(frame_coefficients, pca_vectors)
-
-        # Convert to 3-dimensional data.
-        XYZ_coor_delta_3d = np.reshape(XYZ_coor_delta, (len(XYZ_coor_delta) // 3, 3))
         
         # Add the average atomic positions.
         XYZ_coor = XYZ_coor_delta + coords_avg_atoms
@@ -237,11 +234,11 @@ if __name__ == '__main__':
         expanded_trajectory = expand_PCA(vect_components, PCA_coeff,
                                          coords_avg_atoms, num_decimals)
 
+
         # Calculate RMSD value of each frame between original and expanded trajectory.
         for frame_id, traj_fram in enumerate(traj.trajectory):
             original_positions = traj.select_atoms(params['selection']).positions
             RMSD_lst.append(rms.rmsd(original_positions, expanded_trajectory[frame_id]))
-            traj.select_atoms(params['selection']).positions = expanded_trajectory[frame_id]
         
         # Create a list for outputting frame number.
         frame_numbers = list(range(len(RMSD_lst)))
