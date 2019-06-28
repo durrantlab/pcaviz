@@ -879,9 +879,12 @@ class _Player {
 
         // You should automatically stop if the tab looses focus. Doing this
         // to prevent overheating laptops.
-        window.onblur = () => {
-            this["stop"]();
-        };
+        if (!runningUnderNodeJS) {
+            // check to make sure in browser.
+            window.onblur = () => {
+                this["stop"]();
+            };
+        }
     }
 
     /**

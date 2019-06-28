@@ -728,9 +728,12 @@ var _Player = /** @class */ (function () {
         this._parent = parent;
         // You should automatically stop if the tab looses focus. Doing this
         // to prevent overheating laptops.
-        window.onblur = function () {
-            _this["stop"]();
-        };
+        if (!runningUnderNodeJS) {
+            // check to make sure in browser.
+            window.onblur = function () {
+                _this["stop"]();
+            };
+        }
     }
     /**
      * Starts playing the simulation animation.
