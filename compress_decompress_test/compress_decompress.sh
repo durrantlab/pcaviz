@@ -8,7 +8,7 @@ export precision=${2}
 # Make the JSON file
 python ../python/PCA.py --top_file ../python/test_files/LARP1_first_frame_top.pdb \
     --coor_file ../python/test_files/LARP1_test_traj.pdb --cum_var ${cum_var} \
-    --selection "not name H*" --precision ${precision}
+    --selection "not name H*" --precision ${precision} --check_accuracy
 
 # Move the JSON file to the output directory, renaming it.
 mkdir -p output
