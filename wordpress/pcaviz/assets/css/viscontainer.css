@@ -1,5 +1,5 @@
- /* The below position the viewer div and controls div relative to
-* each other. */
+/* The below position the viewer div and controls div relative to each other.*/
+
 #vis-and-controls {
     width: 60%;
     height: 400px;
@@ -23,4 +23,3 @@
 .pcaviz-button { padding: 7px;  }
 .pcaviz-button img { height: 25px;  }
 .pcaviz-slider-container { padding-left: 10px; height: inherit; }
-
