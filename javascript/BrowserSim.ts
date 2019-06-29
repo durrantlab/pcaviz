@@ -117,7 +117,7 @@ class BrowserSim {
                 let goodCoorRep = "[\n";
                 for (let idx in newAtomCoors) {
                     if (newAtomCoors.hasOwnProperty(idx)) {
-                        let idxVal = parseInt(idx, 10);
+                        let idxVal = +idx;
                         let coor = newAtomCoors[idx];
                         goodCoorRep += `  Float32Array [${coor[0]}, ${coor[1]}, ${coor[2]}],\n`;
                         if (idxVal > 10) {
@@ -231,39 +231,49 @@ class BrowserSim {
                 frame + this._params["halfWindowSize"] + 1
             );
 
-            // Get the coefficients for each of those frames (an array of
-            // Float32Array's)
-            let framesCoefficients = framesToAvg.map((frameIdx): any => {
+            // Get the coefficients for each of those frames (output is an
+            // array of Float32Array's). Note that map is slow, so using
+            // standard for loop.
+            let len = framesToAvg.length;
+            let framesCoefficients = Array(len);
+            for (let i = 0; i < len; i++) {
+                let frameIdx = framesToAvg[i];
                 // Make sure frame never out of bounds.
                 if (frameIdx < 0) { frameIdx += this._numFramesTotal; }
                 frameIdx = frameIdx % this._numFramesTotal;
 
                 // Get the frame data (PCA coefficients).
-                return this._frameData[frameIdx];
-            });
+                framesCoefficients[i] = this._frameData[frameIdx];
+            }
 
-            // Get the flattened coordinates for the frames (i.e., coordinates not
-            // separated into triplets).
-            let coorsFlattenedForFrames = framesCoefficients.map((frameCoefficients) => {
+            // Get the flattened coordinates for the frames (i.e., coordinates
+            // not separated into triplets). Intentionally avoiding map()
+            // functions here because they are slow.
+            len = framesCoefficients.length;
+            let len2 = this._componentData.length;
+            let coorsFlattenedForFrames = Array(len);
+            for (let i = 0; i < len; i++) {
+                let frameCoefficients = framesCoefficients[i];
                 // frameCoefficients is a Float32Array containing all the
                 // coefficients for a given frame. Need to multiple those by the
                 // corresponding components.
 
-                let multipledComponents = this._componentData.map((component, componentIdx) => {
-                    return MathUtils.multiplyFloat32ArrayByScalar(
+                let multipledComponents = Array(len2);
+                for (let componentIdx = 0; componentIdx < len2; componentIdx++) {
+                    let component = this._componentData[componentIdx];
+                    multipledComponents[componentIdx] = MathUtils.multiplyFloat32ArrayByScalar(
                         frameCoefficients[componentIdx], component
                     );
-                });
+                }
 
                 let summedMultipledComponents = MathUtils.sumArrayOfFloat32Arrays(multipledComponents);
 
-                return summedMultipledComponents;
-            });
+                coorsFlattenedForFrames[i] = summedMultipledComponents;
+            }
 
             // Now average the flattened coordinates over the frame window.
-            let summedCoorsOverFrames = coorsFlattenedForFrames.reduce((summedCoors, newCoors) => {
-                return MathUtils.sumArrayOfFloat32Arrays([summedCoors, newCoors]);
-            });
+            // Produces a long Float32array.
+            let summedCoorsOverFrames = MathUtils.sumArrayOfFloat32Arrays(coorsFlattenedForFrames);
 
             let fac = 1.0 / framesToAvg.length;
             let averageCoorsOverFrames = MathUtils.multiplyFloat32ArrayByScalar(
@@ -275,15 +285,21 @@ class BrowserSim {
                 averageCoorsOverFrames, this._averagePositions
             ]);
 
-            // Reshape the averaged coordinates into a list of Float32Array triplets.
-            coors = MathUtils._range(0, this._componentSize / 3).map(i => {
+            // Reshape the averaged coordinates into a list of Float32Array
+            // triplets. Avoiding map() funcitons on purpose.
+            let arange = MathUtils._range(0, this._componentSize / 3);
+            len = arange.length;
+            coors = Array(len);
+            for (let i2 = 0; i2 < len; i2++) {
+                let i = arange[i2];
                 let three_i = 3 * i;
-                return new Float32Array([
+                coors[i2] = new Float32Array([
                     averageCoorsOverFrames[three_i],
                     averageCoorsOverFrames[three_i + 1],
                     averageCoorsOverFrames[three_i + 2]
                 ]);
-            });
+
+            }
 
             if (this._params["cacheModeNum"] > 0) {
                 this._cachedFrameCoors[frame] = coors;
@@ -302,7 +318,7 @@ class BrowserSim {
         if (this._params["cacheModeNum"] === 2) {
             this._cachedFrameCoors = {};  // Reset everything.
             for (let frameIdx = 0; frameIdx < this._numFramesTotal; frameIdx++) {
-                console.log("Caching frame", frameIdx);
+                // console.log("Caching frame", frameIdx);
                 this.getFrameCoors(frameIdx);
             }
         }
@@ -391,19 +407,21 @@ class _IO {
         this._parent._numFramesTotal = this._parent._numFramesInJSON * this._parent._frameStride;
 
         // Convert frames to array of typed arrays. It's faster.
-        for (let idx1 in data["coeffs"]) {
-            if (data["coeffs"].hasOwnProperty(idx1)) {
-                let idx1Num = parseInt(idx1, 10);
-                this._parent._frameData[idx1Num * this._parent._frameStride] = new Float32Array(
-                    data["coeffs"][idx1Num]
-                );
-            }
+        let len = data["coeffs"].length;
+        for (let idx1 = 0; idx1 < len; idx1++) {
+            this._parent._frameData[idx1 * this._parent._frameStride] = new Float32Array(
+                data["coeffs"][idx1]
+            );
         }
 
         // The coefficients need to be converted from int to floats.
-        for (let idx1 in this._parent._frameData) {
-            if (this._parent._frameData.hasOwnProperty(idx1)) {
-                this._parent._frameData[idx1] = this._parent._frameData[idx1].map(v => precisionFactor * v);
+        len = this._parent._frameData[0].length;
+        let frameDataKeys = Object.keys(this._parent._frameData);
+        let len2 = frameDataKeys.length;
+        for (let i2 = 0; i2 < len2; i2++) {
+            let idx1 = +frameDataKeys[i2];
+            for (let i = 0; i < len; i++) {
+                this._parent._frameData[idx1][i] = precisionFactor * this._parent._frameData[idx1][i];
             }
         }
 
@@ -465,20 +483,17 @@ class _IO {
         this._parent._componentData = []
 
         // Same with vectors.
-        for (let idx1 in data["vecs"]) {
-            if (data["vecs"].hasOwnProperty(idx1)) {
-                let idx1Num = parseInt(idx1, 10);
-                this._parent._componentData[idx1Num] = new Float32Array(data["vecs"][idx1Num]);
-            }
+        let len = data["vecs"].length;
+        for (let idx1 = 0; idx1 < len; idx1++) {
+            this._parent._componentData[idx1] = new Float32Array(data["vecs"][idx1]);
         }
 
         // The vectors need to be converted from int to floats.
-        for (let idx1 in this._parent._componentData) {
-            if (this._parent._componentData.hasOwnProperty(idx1)) {
-                let idxNum = parseInt(idx1, 10);
-                this._parent._componentData[idxNum] = this._parent._componentData[idxNum].map(
-                    v => precisionFactor * v
-                );
+        len = this._parent._componentData.length
+        let len2 = this._parent._componentData[0].length;
+        for (let idx1 = 0; idx1 < len; idx1++) {
+            for (let i = 0; i < len2; i++) {
+                this._parent._componentData[idx1][i] = precisionFactor * this._parent._componentData[idx1][i];
             }
         }
     }
@@ -492,9 +507,11 @@ class _IO {
      */
     private _loadJSONSetupAveragePos(data: any, precisionFactor: number) {
         // Make the average coordinates, converting them from int to float.
-        this._parent._averagePositions = new Float32Array(
-            data["coors"].map(v => precisionFactor * v)
-        );
+        let len = data["coors"].length;
+        this._parent._averagePositions = new Float32Array(len);
+        for (let i = 0; i < len; i++) {
+            this._parent._averagePositions[i] = precisionFactor * data["coors"][i];
+        }
     }
 
     /**
@@ -506,9 +523,11 @@ class _IO {
      */
     private _loadJSONSetupFirstFramePos(data: any, precisionFactor: number) {
         // Make the first-frame coordinates, converting them from int to float.
-        this._parent._firstFramePositions = new Float32Array(
-            data["first_coors"].map(v => precisionFactor * v)
-        );
+        let len = data["first_coors"].length;
+        this._parent._firstFramePositions = new Float32Array(len);
+        for (let i = 0; i < len; i++) {
+            this._parent._firstFramePositions[i] = precisionFactor * data["first_coors"][i];
+        }
     }
 
     /**
@@ -523,33 +542,35 @@ class _IO {
         let curResName = "";
         let pdbTxt = "";
 
-        // Reshape the averaged coordinates into a list of Float32Array triplets.
-        let firstFrameCoors = MathUtils._range(0, this._parent._componentSize / 3).map(i => {
+        // Reshape the averaged coordinates into a list of Float32Array
+        // triplets.
+        let arange = MathUtils._range(0, this._parent._componentSize / 3);
+        let len = arange.length;
+        let firstFrameCoors = Array(len);
+        for (let i2 = 0; i2 < len; i2++) {
+            let i = arange[i2];
             let three_i = 3 * i;
-            return new Float32Array([
+            firstFrameCoors[i2] = new Float32Array([
                 this._parent._firstFramePositions[three_i],
                 this._parent._firstFramePositions[three_i + 1],
                 this._parent._firstFramePositions[three_i + 2]
             ]);
-        });
+        }
 
-        for (let idxStr in res_info) {
-            if (res_info.hasOwnProperty(idxStr)) {
-                let idx = parseInt(idxStr, 10);
-
-                let v = res_info[idx];
-                if (typeof(v) !== "string") {
-                    curResID = v[0].toString();
-                    curResName = v[1];
-                    v = v[2];
-                }
-
-                let coor = firstFrameCoors[idx];
-
-                pdbTxt += this._makePDBLine(
-                    idx, v, curResName, "X", curResID, coor[0], coor[1], coor[2]
-                );
+        len = res_info.length;
+        for (let idx = 0; idx < len; idx++) {
+            let v = res_info[idx];
+            if (typeof(v) !== "string") {
+                curResID = v[0].toString();
+                curResName = v[1];
+                v = v[2];
             }
+
+            let coor = firstFrameCoors[idx];
+
+            pdbTxt += this._makePDBLine(
+                idx, v, curResName, "X", curResID, coor[0], coor[1], coor[2]
+            );
         }
 
         this._parent["viewer"]["addPDBTxt"](pdbTxt);
@@ -592,12 +613,12 @@ class _IO {
     public "makePDB"(): string {
         let numAtoms = this._parent._componentSize / 3;
         let pdbTxt = "";
-        for (let frameIdx=0; frameIdx<this._parent._numFramesTotal; frameIdx++) {
+        for (let frameIdx = 0; frameIdx < this._parent._numFramesTotal; frameIdx++) {
             pdbTxt += "MODEL " + frameIdx.toString() + "\n";
             let coors = this._parent.getFrameCoors(frameIdx);
             let curResID = "";
             let curResName = "";
-            for (let atomIdx=0; atomIdx<numAtoms; atomIdx++) {
+            for (let atomIdx = 0; atomIdx < numAtoms; atomIdx++) {
                 let v = this._parent._res_info[atomIdx];
                 if (typeof(v) !== "string") {
                     curResID = v[0].toString();
@@ -1008,16 +1029,23 @@ module MathUtils {
      * @returns Float32Array         The sum.
      */
     export function sumArrayOfFloat32Arrays(arrayOfFloat32Arrays: Float32Array[]): Float32Array {
-        if (arrayOfFloat32Arrays.length === 1) {
+        let len = arrayOfFloat32Arrays.length;
+        if (len === 1) {
             // Just one item in the array, so return that first item.
             return arrayOfFloat32Arrays[0];
         } else {
             // Multiple items. So need to sum them.
-            return arrayOfFloat32Arrays.reduce((summedVals, newVals) => {
-                return summedVals.map((v, i) => {
-                    return v + newVals[i];
-                })
-            });
+            let len2 = arrayOfFloat32Arrays[0].length;
+            let summed = new Float32Array(len2);
+            for (let arrIdx = 0; arrIdx < len; arrIdx++) {
+                let arr = arrayOfFloat32Arrays[arrIdx];
+                for (let i = 0; i < len2; i++) {
+                    let v = arr[i];
+                    summed[i] = v + summed[i];
+                }
+            }
+
+            return summed;
         }
     }
 
@@ -1028,13 +1056,18 @@ module MathUtils {
      * @returns Float32Array  The multiplied Float32Array.
      */
     export function multiplyFloat32ArrayByScalar(scalar: number, float32Array: Float32Array): Float32Array {
+        let len = float32Array.length;
         switch (scalar) {
             case 0.0:
-                return new Float32Array(float32Array.length);
+                return new Float32Array(len);
             case 1.0:
                 return float32Array;
             default:
-                return float32Array.map(v => scalar * v);
+                let newFloat32Array = new Float32Array(len);
+                for (let i = 0; i < len; i++) {
+                    newFloat32Array[i] = scalar * float32Array[i];
+                }
+                return newFloat32Array;
         }
     }
 }
@@ -1236,7 +1269,7 @@ if (!runningUnderNodeJS) {
     (function() {
         var lastTime = 0;
         var vendors = ['ms', 'moz', 'webkit', 'o'];
-        for(var x = 0; x < vendors.length && !window["requestAnimationFrame"]; ++x) {
+        for (var x = 0; x < vendors.length && !window["requestAnimationFrame"]; ++x) {
             window["requestAnimationFrame"] = window[vendors[x]+'RequestAnimationFrame'];
             window["cancelAnimationFrame"] = window[vendors[x]+'CancelAnimationFrame']
                                              || window[vendors[x]+'CancelRequestAnimationFrame'];
@@ -1304,9 +1337,11 @@ if (!runningUnderNodeJS) {
         },
     });
 
-    browserSim.io.loadJSON("data.json", () => {
-        let func = browserSim.io.makePDB.bind(browserSim.io);
+    browserSim["io"].loadJSON("data.json", () => {
+        let func = browserSim["io"].makePDB.bind(browserSim["io"]);
         let pdbTxt = func(jsonData);
         console.log(pdbTxt);
     });
 }
+
+console.log("moo2");
