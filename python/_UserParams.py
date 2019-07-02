@@ -23,6 +23,10 @@ def get_params():
         >>> python PCA.py -h
     """
 
+    # If no parameters given, show the help file.
+    if len(sys.argv) == 1:
+        sys.argv.append("-h")
+
     # If a json file is provided,
     # read in parameters from json file.
     possible_json_file = sys.argv[1].lower()
