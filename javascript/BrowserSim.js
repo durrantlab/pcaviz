@@ -164,7 +164,7 @@ var BrowserSim = /** @class */ (function () {
      *                        coordinates, for each frame.
      */
     BrowserSim.prototype.getFrameCoors = function (frame) {
-        var coors = undefined;
+        var coors = Array();
         // console.log(this._params["cacheModeNum"], this._cachedFrameCoors, frame, this._cachedFrameCoors[frame]);
         if ((this._params["cacheModeNum"] === 0) || (this._cachedFrameCoors[frame] === undefined)) {
             // So either cache is not turned on (none), or there's no cached
@@ -175,7 +175,7 @@ var BrowserSim = /** @class */ (function () {
             // array of Float32Array's). Note that map is slow, so using
             // standard for loop.
             var len = framesToAvg.length;
-            var framesCoefficients = Array(len);
+            var framesCoefficients = Array(len); // An array of Float32Array (the coeff).
             for (var i = 0; i < len; i++) {
                 var frameIdx = framesToAvg[i];
                 // Make sure frame never out of bounds.
@@ -191,7 +191,7 @@ var BrowserSim = /** @class */ (function () {
             // functions here because they are slow.
             len = framesCoefficients.length;
             var len2 = this._componentData.length;
-            var coorsFlattenedForFrames = Array(len);
+            var coorsFlattenedForFrames = Array(len); // A list of Float32Array (flattened coors)
             for (var i = 0; i < len; i++) {
                 var frameCoefficients = framesCoefficients[i];
                 // frameCoefficients is a Float32Array containing all the
@@ -416,7 +416,8 @@ var _IO = /** @class */ (function () {
         }
     };
     /**
-     * Sets up the first-frame coordinates.
+     * Sets up the first-frame coordinates. This is necessary to get the bond
+     * orders correct.
      * @param  {Object<string,*>}  data             The data from the JSON.
      * @param  {number}            precisionFactor  The precision to use
      *                                              (number of decimal
@@ -622,7 +623,8 @@ var _Viewer = /** @class */ (function () {
      * @returns void
      */
     _Viewer.prototype._3DMolJS_AddPDBTxt = function (pdbTxt) {
-        this._model = this._parent._params["viewer"].addModel(pdbTxt, "pdb");
+        // Note that by default it strips hydrogens! Unfortunate.
+        this._model = this._parent._params["viewer"].addModel(pdbTxt, "pdb", { "keepH": true });
         this._render();
     };
     /**
@@ -960,7 +962,7 @@ var _PlayerControls = /** @class */ (function () {
             this._sliderDOM = document.getElementById(randomID + "-slider");
             // Make these elements clickable.
             this._playDOM.addEventListener("click", function () {
-                console.log(_this._parent._params);
+                // console.log(this._parent._params);
                 _this._parent["player"]["start"](_this._parent._params);
             });
             this._pauseDOM.addEventListener("click", function () {
@@ -1142,4 +1144,3 @@ else {
         console.log(pdbTxt);
     });
 }
-console.log("moo2");

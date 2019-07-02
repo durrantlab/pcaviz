@@ -217,7 +217,7 @@ class BrowserSim {
      *                        coordinates, for each frame.
      */
     public getFrameCoors(frame: number): Float32Array[] {
-        let coors = undefined;
+        let coors = Array();
 
         // console.log(this._params["cacheModeNum"], this._cachedFrameCoors, frame, this._cachedFrameCoors[frame]);
 
@@ -235,7 +235,7 @@ class BrowserSim {
             // array of Float32Array's). Note that map is slow, so using
             // standard for loop.
             let len = framesToAvg.length;
-            let framesCoefficients = Array(len);
+            let framesCoefficients = Array(len);  // An array of Float32Array (the coeff).
             for (let i = 0; i < len; i++) {
                 let frameIdx = framesToAvg[i];
                 // Make sure frame never out of bounds.
@@ -251,7 +251,7 @@ class BrowserSim {
             // functions here because they are slow.
             len = framesCoefficients.length;
             let len2 = this._componentData.length;
-            let coorsFlattenedForFrames = Array(len);
+            let coorsFlattenedForFrames = Array(len);  // A list of Float32Array (flattened coors)
             for (let i = 0; i < len; i++) {
                 let frameCoefficients = framesCoefficients[i];
                 // frameCoefficients is a Float32Array containing all the
@@ -298,7 +298,6 @@ class BrowserSim {
                     averageCoorsOverFrames[three_i + 1],
                     averageCoorsOverFrames[three_i + 2]
                 ]);
-
             }
 
             if (this._params["cacheModeNum"] > 0) {
@@ -309,7 +308,6 @@ class BrowserSim {
             coors = this._cachedFrameCoors[frame];
             // console.log("cached");
         }
-
         return coors;
     }
 
@@ -515,7 +513,8 @@ class _IO {
     }
 
     /**
-     * Sets up the first-frame coordinates.
+     * Sets up the first-frame coordinates. This is necessary to get the bond
+     * orders correct.
      * @param  {Object<string,*>}  data             The data from the JSON.
      * @param  {number}            precisionFactor  The precision to use
      *                                              (number of decimal
@@ -741,7 +740,10 @@ class _Viewer {
      * @returns void
      */
     private _3DMolJS_AddPDBTxt(pdbTxt: string): void {
-        this._model = this._parent._params["viewer"].addModel( pdbTxt, "pdb" );
+        // Note that by default it strips hydrogens! Unfortunate.
+        this._model = this._parent._params["viewer"].addModel(
+            pdbTxt, "pdb", {"keepH": true}
+        );
         this._render();
     }
 
@@ -1145,7 +1147,7 @@ class _PlayerControls {
 
             // Make these elements clickable.
             this._playDOM.addEventListener("click", () => {
-                console.log(this._parent._params);
+                // console.log(this._parent._params);
                 this._parent["player"]["start"](this._parent._params);
             });
             this._pauseDOM.addEventListener("click", () => {
@@ -1343,5 +1345,3 @@ if (!runningUnderNodeJS) {
         console.log(pdbTxt);
     });
 }
-
-console.log("moo2");

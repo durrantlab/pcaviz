@@ -5,7 +5,7 @@ let viewer = $3Dmol.createViewer(element, config);
 // Run sims in the browsers
 function makeBrowserSim(viewer, viewerType,  datafile) {
     element.show()
-    let browserSim = new BrowserSim({
+    let pcaViz = new BrowserSim({
         viewer: viewer,
         viewerType: viewerType,
         visStyle: {cartoon:{}, stick:{radius:.5,colorscheme:'Jmol'}},
@@ -16,12 +16,12 @@ function makeBrowserSim(viewer, viewerType,  datafile) {
         windowAverageSize: 1,
     });
 
-    browserSim.io.loadJSON(datafile, () => {
+    pcaViz.io.loadJSON(datafile, () => {
         // Zoom in on the model.
         viewer.zoomTo();
 
         // Start playing.
-        browserSim.player.start({
+        pcaViz.player.start({
             durationInMilliseconds: 10000,
             updateFreqInMilliseconds: 16.67,  // 60 fps
             loop: true,
