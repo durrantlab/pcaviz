@@ -51,23 +51,6 @@ function pcaviz_plugin_admin_notices() {
 add_action('admin_notices', 'pcaviz_plugin_admin_notices');
 
 /**
- * Display the notice inviting the user to opt-in to tracking, to help with
- * future grants.
- *
- * @return void
- */
-function display_notice() {?>
-	<div class="notice notice-success is-dismissible">
-		<p><?php _e(
-            'Please visit <a href="/wp-admin/options-general.php?page=durrant">'
-            .'plugin settings page</a> and activate statistics usage analysis!',
-            'shapeSpace'
-        ); ?></p>
-	</div>
-<?php
-}
-
-/**
  * Notify wordpress filters that we want to allow JSON files.
  *
  * @param array $existing_mimes  An array containing mime times that are
