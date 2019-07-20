@@ -19,6 +19,11 @@
     height: 40px;
 }
 
+/** Need below to keep the button from being too tall. **/
+.pcaviz-controls-container {
+    height: 40px;
+}
+
 /* You can also stylize the control buttons. */
 .pcaviz-button { padding: 7px;  }
 .pcaviz-button img { height: 25px;  }

@@ -64,8 +64,10 @@ function my_myme_types($existing_mimes=array()) {
 add_filter( 'upload_mimes', 'my_myme_types' );
 
 // Register the necessary scripts.
-wp_register_script('3Dmol-min', plugin_dir_url(__FILE__) . 'assets/js/3Dmol-min.js');
+// wp_register_script('3Dmol-min', plugin_dir_url(__FILE__) . 'assets/js/3Dmol-min.js');
+wp_register_script('3Dmol-min', plugin_dir_url(__FILE__) . 'assets/js/3Dmol-nojquery-min.js', array('jquery'));
 wp_enqueue_script('3Dmol-min');
+
 wp_register_script('BrowserSim.min', plugin_dir_url(__FILE__) . 'assets/js/BrowserSim.min.js');
 wp_enqueue_script('BrowserSim.min');
 wp_enqueue_script('jquery');
@@ -161,9 +163,9 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
 
     // Add javascript for toggling the "collapsable" div.
     echo "<script>
-              $('#collapsable').hide();
+              jQuery('#collapsable').hide();
               function togglevisibility() {
-                  $('#collapsable').show();
+                  jQuery('#collapsable').show();
               }
           </script>";
 

@@ -18,6 +18,9 @@ java -jar utils/closure-compiler-v20180506.jar $formatting \
 
 #cp BrowserSim.js BrowserSim.min.js
 
+# Fix a namespace issue.
+python utils/fix_namespaces.py
+
 # Make example files
 echo "Make example files."
 cd examples
