@@ -220,10 +220,10 @@ if __name__ == '__main__':
     num_decimals = params['precision']
 
     # Load a trajectory for input file, aligning it if it is the first.
-    traj = _Utils.load_traj(
-        top_file, coor_file, align=False  # align_sel=params['align_sel']
-    )
-    # If a dual function file is being used, set coor_file to it for filename purposes.
+    traj = _Utils.load_traj(top_file, coor_file)
+
+    # If a dual function file is being used, set coor_file to it for filename
+    # purposes.
     if coor_file is None:
         coor_file = top_file
 

@@ -49,34 +49,17 @@ def get_params():
                                  'file (default: "name CA C N O"). See ' +\
                                  'https://goo.gl/kVeQuN to learn ' +\
                                  'how to construct an atom selection string.')
-        # parser.add_argument('--align_sel', metavar='as', type=str, nargs="?",
-        #                     default="NOT_SPECIFIED",
-        #                     help='Which atoms to use for aligning the trajectorty (default, ' +\
-        #                          'whatever --selection is). In some scenarios, ' +\
-        #                          'you may wish to align by one set of atoms, but ' +\
-        #                          'save a different set of atoms. For example, ' +\
-        #                          'aligning by all CA, but saving all protein atoms.')
         parser.add_argument('--output_dir', metavar='od', type=str, nargs="?",
                             default=None,
                             help='The directory where output files should be saved. ' +\
                                  'The directory will be created if it does not exist. ' +\
                                  '(default: the directory where the coordinate file is located).')
-        # parser.add_argument('--dir', action="store_true",
-        #                     help='If present, no need to provide topology ' +\
-        #                          'and coordinate files, scripts will select ' +\
-        #                          'first trajectory in current directory.' +\
-        #                          'Please only have the files you wish to load' +\
-        #                          'in your working directory.')
         parser.add_argument('--stride', metavar='ns', type=int,
                             nargs="?", default=1,
                             help='How many frames to stride. For example, stride = 2 ' +\
                                  'means every other frame will be saved, and stride = 3 ' +\
                                  'means every third frame will be saved. (default: 1, no ' +\
                                  'stride).')
-        # parser.add_argument('--starting_frame', metavar='sf',
-        #                     type=int, nargs="?", default=0,
-        #                     help='Which frame to start trimming from ' +\
-        #                          '(default is 0).')
         parser.add_argument('--cum_var', metavar='var', type=float,
                             nargs='?', default=0.90,
                             help='The target cumulative variance, as a float. PCAViz will ' +\
@@ -95,12 +78,6 @@ def get_params():
         # Parse the arguments.
         args = parser.parse_args()
 
-        # align_sel is selection if not specified.
-        # if args.align_sel == "NOT_SPECIFIED":
-        #     align_sel = args.selection
-        # else:
-        #     align_sel = args.align_sel
-
         # Ensure output_dir is formatted correctly.
         output_dir = args.output_dir
         if output_dir is not None and not output_dir.endswith(os.sep):
@@ -110,17 +87,7 @@ def get_params():
 
         # I want to convert it to a dictionary. Easier to use.
         params = vars(args)
-        # params['align_sel'] = align_sel
         params['output_dir'] = output_dir
-
-    # If we are told to find the files,
-    # get first topology/coordinate/both file.
-    # if params['dir']:
-    #     top_file, coor_file = find_top_and_coor_files()
-    #     params['top_file'] = top_file
-    #     params['coor_file'] = coor_file
-
-    print(params)
 
     # Return the dictionary of parameters.
     return params
