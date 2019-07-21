@@ -32,8 +32,8 @@ interface Params {
 // })(window["TESTING"] || (window["TESTING"] = {}));
 
 // Put it all in a big namespace to avoid having all the classes be global.
-namespace BrowserSimNameSpace {
-    export class BrowserSim {
+namespace PCAVizNameSpace {
+    export class PCAViz {
         // Note that the below are public so they can be accessed from other
         // classes. But they are not public to the user and so do not need to be
         // protected from closure compiler.
@@ -62,7 +62,7 @@ namespace BrowserSimNameSpace {
         private _playerControls;
 
         /**
-         * Constructor for the BrowserSim class.
+         * Constructor for the PCAViz class.
          * @param  {Object<string,*>} params
          * @returns void
          */
@@ -92,14 +92,14 @@ namespace BrowserSimNameSpace {
          */
         public updateParams(updatedParams: any): void {
             // Set some common error text blurbs.
-            let genericModeBut = 'You are running BrowserSim in GENERIC mode, but ' +
+            let genericModeBut = 'You are running PCAViz in GENERIC mode, but ' +
                                  'you haven\'t specified ';
             let modelVar = 'The "model" variable is whatever your loadPDBTxt(...) ' +
                            'function returns.';
-            let viewerVar = 'The "viewer" variable is the user-specified BrowserSim ' +
+            let viewerVar = 'The "viewer" variable is the user-specified PCAViz ' +
                             '"viewer" parameter.';
-            let browserSimVar = 'The "browserSim" variable is the instantiated ' +
-                                   'BrowserSim object.';
+            let pcaVizVar = 'The "pcaViz" variable is the instantiated ' +
+                                   'PCAViz object.';
 
             // Set the defaults and keeps any previous ones not now specified.
             let defaults: Params = {
@@ -113,17 +113,17 @@ namespace BrowserSimNameSpace {
                 "windowAverageSize": 1,
                 "playerControlsID": "",  // Player controls by default.
                 "parent": this,
-                "loadPDBTxt": (pdbTxt: string, viewer?: any, browserSim?: any) => {
+                "loadPDBTxt": (pdbTxt: string, viewer?: any, pcaViz?: any) => {
                     throw new Error(
                         genericModeBut +
-                        'a loadPDBTxt(pdbTxt, viewer, browserSim) function. This ' +
+                        'a loadPDBTxt(pdbTxt, viewer, pcaViz) function. This ' +
                         'function loads PDB text into the viewer and optionally ' +
                         'returns a model object. For your reference, the current ' +
                         'value of the "pdbTxt" variable (a string) starts with:\n\n' +
                         pdbTxt.toString().slice(0, 500)) + "\n\n" + viewerVar + "\n\n" +
-                        browserSimVar + "\n\n";
+                        pcaVizVar + "\n\n";
                 },
-                "updateAtomPositions": (newAtomCoors: Float32Array[], model?: any, viewer?: any, browserSim?: any) => {
+                "updateAtomPositions": (newAtomCoors: Float32Array[], model?: any, viewer?: any, pcaViz?: any) => {
                     let goodCoorRep = "[\n";
                     for (let idx in newAtomCoors) {
                         if (newAtomCoors.hasOwnProperty(idx)) {
@@ -139,20 +139,20 @@ namespace BrowserSimNameSpace {
 
                     throw new Error(
                         genericModeBut + 'an updateAtomPositions(newAtomCoors, ' +
-                        'model, viewer, browserSim) function. This function provides ' +
+                        'model, viewer, pcaViz) function. This function provides ' +
                         'the updated atom coordinates for the current frame. The ' +
                         'value of the "newAtomCoors" variable (a list of Float32Array ' +
                         'containing the new coordinates of the atoms) ' +
                         'looks like:\n\n' + goodCoorRep + '\n\n' + modelVar +
-                        "\n\n" + viewerVar + "\n\n" + browserSimVar + "\n\n"
+                        "\n\n" + viewerVar + "\n\n" + pcaVizVar + "\n\n"
                     );
                 },
-                "render": (model?: any, viewer?: any, browserSim?: any) => {
+                "render": (model?: any, viewer?: any, pcaViz?: any) => {
                     throw new Error(
-                        genericModeBut + 'a render(model, viewer, browserSim) function. ' +
+                        genericModeBut + 'a render(model, viewer, pcaViz) function. ' +
                         'This function runs every time the atom coordinates ' +
                         'change, to update what the viewer renders. ' + modelVar +
-                        ' ' + viewerVar + ' ' + browserSimVar + "\n\n"
+                        ' ' + viewerVar + ' ' + pcaVizVar + "\n\n"
                     );
                 }
             }
@@ -338,14 +338,14 @@ namespace BrowserSimNameSpace {
 
         /**
          * The constructor of an _IO class.
-         * @param  {*} parent The parent class (BrowserSim Object).
+         * @param  {*} parent The parent class (PCAViz Object).
          */
-        constructor(parent: BrowserSim) {
+        constructor(parent: PCAViz) {
             this._parent = parent;
         }
 
         /**
-         * Loads a JSON file written from the BrowserSim python script. Contains
+         * Loads a JSON file written from the PCAViz python script. Contains
          * all the information needed to visualize the simulation.
          * @param  {string}   path      The JSON path.
          * @param  {Function} callBack  The callback function once loaded.
@@ -681,10 +681,21 @@ namespace BrowserSimNameSpace {
 
         /**
          * The constructor of a _Viewer class.
-         * @param  {*} parent The parent class (BrowserSim Object).
+         * @param  {*} parent The parent class (PCAViz Object).
          */
         constructor(parent: any) {
             this._parent = parent;
+
+            // NGLViewer specifically fulfills a promise when it has finished
+            // loading a molecule, rather than returning the model
+            // immediately. We need fake NGLViewer functions that can get
+            // called until the actual _model is loaded (to avoid errors).
+            this["_model"] = {
+                "rebuildRepresentations": function() { return; },
+                "structure":{
+                    "eachAtom": function(a) { return; }
+                }
+            }
 
             // Perform some checks.
             if (this._parent._params["viewer"] === undefined) {
@@ -751,7 +762,7 @@ namespace BrowserSimNameSpace {
          */
         private _3DMolJS_AddPDBTxt(pdbTxt: string): void {
             // Note that by default it strips hydrogens! Unfortunate.
-            this._model = this._parent._params["viewer"].addModel(
+            this["_model"] = this._parent._params["viewer"]["addModel"](
                 pdbTxt, "pdb", {"keepH": true}
             );
             this._render();
@@ -765,7 +776,7 @@ namespace BrowserSimNameSpace {
         private _3DMolJS_UpdateAtomPos(frame: number): void {
             let newAtomCoors = this._parent.getFrameCoors(frame);
 
-            let atoms = this._model.selectedAtoms({});
+            let atoms = this["_model"]["selectedAtoms"]({});
             let arrLen = atoms.length;
             for (let atomIdx=0; atomIdx<arrLen; atomIdx++) {
                 atoms[atomIdx]["x"] = newAtomCoors[atomIdx][0];
@@ -780,8 +791,8 @@ namespace BrowserSimNameSpace {
          */
         private _3DMolJS_Render(): void {
             // Must update styles to actually have atoms move. Annoying.
-            this._model.setStyle({}, this._parent._params["visStyle"]);
-            this._parent._params["viewer"].render();
+            this["_model"]["setStyle"]({}, this._parent._params["visStyle"]);
+            this._parent._params["viewer"]["render"]();
         }
 
         /**
@@ -790,14 +801,15 @@ namespace BrowserSimNameSpace {
          * @returns void
          */
         private _NGL_AddPDBTxt(pdbTxt: string): void {
-            this._parent._params["viewer"].loadFile(
+            this._parent._params["viewer"]["loadFile"](
                 new Blob(
                     [pdbTxt],
-                    {type: 'text/plain'}
+                    {"type": 'text/plain'}
                 ),
-                {ext:'pdb', defaultRepresentation: true}
+                {"ext":"pdb", "defaultRepresentation": true}
             ).then((e) => {
-                this._model = e;
+                // console.log(this);
+                this["_model"] = e;
             });
         }
 
@@ -807,15 +819,20 @@ namespace BrowserSimNameSpace {
          * @returns void
          */
         private _NGL_UpdateAtomPos(frame: number) {
-            let newAtomCoors = this._parent.getFrameCoors(frame);
+            // Unfortunately, this check is necessary because NGLViewer
+            // returns a promise. If this fires before the promise is
+            // fullfilled, you'll get an error.
+            // if (this["_model"] !== undefined) {
+                let newAtomCoors = this._parent.getFrameCoors(frame);
 
-            let atomIdx = 0;
-            this._model["structure"]["eachAtom"]((atom, idx) => {
-                atom["x"] = newAtomCoors[atomIdx][0];
-                atom["y"] = newAtomCoors[atomIdx][1];
-                atom["z"] = newAtomCoors[atomIdx][2];
-                atomIdx++;
-            });
+                let atomIdx = 0;
+                this["_model"]["structure"]["eachAtom"]((atom, idx) => {
+                    atom["x"] = newAtomCoors[atomIdx][0];
+                    atom["y"] = newAtomCoors[atomIdx][1];
+                    atom["z"] = newAtomCoors[atomIdx][2];
+                    atomIdx++;
+                });
+            // }
         }
 
         /**
@@ -823,7 +840,12 @@ namespace BrowserSimNameSpace {
          * @returns void
          */
         private _NGL_Render() {
-            this._model["rebuildRepresentations"]();
+            // Unfortunately, this check is necessary because NGLViewer
+            // returns a promise. If this fires before the promise is
+            // fullfilled, you'll get an error.
+            // if (this["_model"] !== undefined) {
+                this["_model"]["rebuildRepresentations"]();
+            // }
         }
 
         /**
@@ -832,7 +854,7 @@ namespace BrowserSimNameSpace {
          * @returns void
          */
         private _PV_AddPDBTxt(pdbTxt: string): void {
-            this._model = this._parent._params["viewer"]["library"]["io"]["pdb"](pdbTxt);
+            this["_model"] = this._parent._params["viewer"]["library"]["io"]["pdb"](pdbTxt);
         }
 
         /**
@@ -844,7 +866,7 @@ namespace BrowserSimNameSpace {
             let newAtomCoors = this._parent.getFrameCoors(frame);
 
             let atomIdx = 0;
-            this._model["eachAtom"]((atom, idx) => {
+            this["_model"]["eachAtom"]((atom, idx) => {
                 atom["_bV"] = newAtomCoors[atomIdx];
                 atomIdx++;
             });
@@ -858,7 +880,7 @@ namespace BrowserSimNameSpace {
             this._parent._params["viewer"]["viewer"].clear();
 
             // A callback function in the case of PV.
-            this._parent._params["visStyle"](this._model);
+            this._parent._params["visStyle"](this["_model"]);
         }
 
         /**
@@ -872,7 +894,7 @@ namespace BrowserSimNameSpace {
             );
 
             if (candidateModel !== undefined) {
-                this._model = candidateModel;
+                this["_model"] = candidateModel;
             }
         }
 
@@ -884,7 +906,7 @@ namespace BrowserSimNameSpace {
         private _GENERIC_UpdateAtomPos(frame: number) {
             let newAtomCoors = this._parent.getFrameCoors(frame);
             this._parent._params["updateAtomPositions"](
-                newAtomCoors, this._model, this._parent._params["viewer"], this
+                newAtomCoors, this["_model"], this._parent._params["viewer"], this
             );
         }
 
@@ -894,7 +916,7 @@ namespace BrowserSimNameSpace {
          */
         private _GENERIC_Render() {
             this._parent._params["render"](
-                this._model, this._parent._params["viewer"], this
+                this["_model"], this._parent._params["viewer"], this
             );
         }
     }
@@ -905,7 +927,7 @@ namespace BrowserSimNameSpace {
 
         /**
          * The constructor of a _Player class.
-         * @param  {*} parent The parent class (BrowserSim Object).
+         * @param  {*} parent The parent class (PCAViz Object).
          */
         constructor(parent: any) {
             this._parent = parent;
@@ -1118,9 +1140,9 @@ namespace BrowserSimNameSpace {
 
         /**
          * The constructor of an _IO class.
-         * @param  {*} parent The parent class (BrowserSim Object).
+         * @param  {*} parent The parent class (PCAViz Object).
          */
-        constructor(parent: BrowserSim) {
+        constructor(parent: PCAViz) {
             this._parent = parent;
 
             if (this._parent._params["playerControlsID"] !== "") {
@@ -1307,9 +1329,9 @@ namespace BrowserSimNameSpace {
     }());
 
     // To survive closure compiler. See fix_namespaces.py to see where
-    // window["BrowserSimNameSpace"] comes from.
-    (<any>window)["BrowserSim"] = window["BrowserSimNameSpace"].BrowserSim;
-    // (<any>window)["BrowserSim"] = BrowserSimNameSpace.BrowserSim;
+    // window["PCAVizNameSpace"] comes from.
+    (<any>window)["PCAViz"] = window["PCAVizNameSpace"].PCAViz;
+    // (<any>window)["PCAViz"] = PCAVizNameSpace.PCAViz;
 
 // } else {
 //     // It's running under node js. Note that you won't be using the closure
@@ -1344,19 +1366,19 @@ namespace BrowserSimNameSpace {
 //     }
 
 //     // Now create the
-//     let browserSim = new BrowserSim({
+//     let pcaViz = new PCAViz({
 //         viewer: {},
 //         viewerType: 'GENERIC',
 //         windowAverageSize: 1,
-//         loadPDBTxt: (pdbTxt, viewer, browserSim) => { return; },  // viewer.addModel(pdbTxt, "pdb"),
-//         updateAtomPositions: (newAtomCoors, model, viewer, browserSim) => { return ; },
-//         render: (model, viewer, browserSim) => {
+//         loadPDBTxt: (pdbTxt, viewer, pcaViz) => { return; },  // viewer.addModel(pdbTxt, "pdb"),
+//         updateAtomPositions: (newAtomCoors, model, viewer, pcaViz) => { return ; },
+//         render: (model, viewer, pcaViz) => {
 //             return;
 //         },
 //     });
 
-//     browserSim["io"].loadJSON("data.json", () => {
-//         let func = browserSim["io"].makePDB.bind(browserSim["io"]);
+//     pcaViz["io"].loadJSON("data.json", () => {
+//         let func = pcaViz["io"].makePDB.bind(pcaViz["io"]);
 //         let pdbTxt = func(jsonData);
 //         console.log(pdbTxt);
 //     });

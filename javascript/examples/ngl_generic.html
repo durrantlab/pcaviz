@@ -1,10 +1,12 @@
+<!DOCTYPE html>
 <html>
     <head>
         <title>NGLViewer Generic Mode</title>
     </head>
     <body>
         <style>
-            /* The below position the viewer div and controls div relative to each other. */
+            /* The below position the viewer div and controls div relative to
+            each other. */
             #vis-and-controls {
                 width: 60%;
                 height: 400px;
@@ -29,7 +31,11 @@
             .pcaviz-button img { height: 25px; }
             .pcaviz-slider-container { padding-left: 10px; }
         </style>
+
         <h1>NGLViewer Generic Mode</h1>
+
+        <!-- Create containers for both NGLViewer and the trajectory controls
+        (e.g., play button) -->
         <div id="vis-and-controls">
             <div id="viscontainer"></div>
             <div id="controls"></div>
@@ -38,69 +44,109 @@
         <!-- Load the javascript files -->
         <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
         <script src="https://unpkg.com/ngl@0.10.4/dist/ngl.js"></script>
-        <script src="BrowserSim.min.js"></script>
+        <script src="PCAViz.min.js"></script>
+
         <script>
-            // Setup NGLViewer Generic Mode
+            // Setup NGLViewer
             var viewer = new NGL.Stage('viscontainer');
             viewer.viewer.setBackground( 0xFFFFFF );
 
-            // Run sims in the browsers
-            function makeBrowserSim(viewer, viewerType) {
-                let browserSim = new BrowserSim({
-                    viewer: viewer,
-                    viewerType: viewerType,
-                    visStyle: undefined,  // Not needed when in generic mode
+            // If you run PCAViz in GENERIC mode, PCAViz won't use its
+            // built-in 3DMol.js-, NGLViewer-, or PV-specific functions for
+            // 1) loading molecular models from PDB text, 2) updating atom
+            // positions, and 3) rendering the models. You'll need to
+            // define those functions yourself. GENERIC mode gives advanced
+            // users more control over PCAViz and allows them to adapt the
+            // library for use with other WebGL-based
+            // molecular-visualization libraries. Most users should simply
+            // use PCAViz in 3DMOLJS, NGL, or PV mode.
+            viewerType = "GENERIC";
+
+            // Create a PCAViz object with your desired parameters.
+            let pcaViz = new PCAViz({
+                // The NGLViewer object.
+                viewer: viewer,
+
+                // The type of viewer object (3DMOLJS, NGL, PV, or GENERIC).
+                // GENERIC in this case.
+                viewerType: viewerType,
+
+                // ???????
+                visStyle: undefined,  // Not needed when in generic mode
+
+                // The number of milliseconds it should take to play the
+                // simulation from start to finish.
+                durationInMilliseconds: 10000,
+
+                // How often to upate the atomic coordinates. Note that
+                // updating every 16.67 ms gives 60 frames per second.
+                updateFreqInMilliseconds: 16.67,
+
+                // Whether to restart the simulation once it finishes (looping
+                // playback).
+                loop: true,
+
+                // The HTML ID of the DOM element where PCAViz should add
+                // playback controls (e.g., the play button).
+                playerControlsID: "controls",
+
+                // The number of frames PCAViz should consider when smoothing
+                // the trajectory motions via a windowed average.
+                windowAverageSize: 1,
+
+                // Because you're running PCAViz in GENERIC mode, you have to
+                // tell it how to serve the PDB-formatted coordinates it
+                // generates to your molecular-vizualization library of choice
+                // (NGL Viewer in this case). Normally loadPDBTxt() would
+                // return the model itself, but NGL Viewer uses promises. So
+                // set the pcaViz._model variable directly.
+                loadPDBTxt: (pdbTxt, viewer, pcaViz) => {
+                    viewer.loadFile(
+                        new Blob(
+                            [pdbTxt],
+                            {type: "text/plain"}
+                        ),
+                        {ext: "pdb", defaultRepresentation: true}
+                    ).then((e) => {
+                        pcaViz._model = e;  // Cannot return, because it's a promise
+                    });
+                },
+
+                // In GENERIC mode, you have to tell PCAViz how to update the
+                // atom positions of your model.
+                updateAtomPositions: (newAtomCoors, model, viewer, pcaViz) => {
+                    var atomIdx = 0; window.m = model;
+                    model.structure.eachAtom((atom, idx) => {
+                        var coors = newAtomCoors[atomIdx];
+                        atom["x"] = coors[0];
+                        atom["y"] = coors[1];
+                        atom["z"] = coors[2];
+                        atomIdx++;
+                    });
+                },
+
+                // In GENERIC mode, you have to tell PCAViz how to render your
+                // model after every atom-position update.
+                render: (model, viewer, pcaViz) => model.rebuildRepresentations(),
+            });
+
+            // Load in the PCAViz JSON file, created with the PCAViz
+            // Compressor.
+            pcaViz.io.loadJSON("sim.json", () => {
+                // Now start the animation. Note that any paramters passed to
+                // the start function overwrite those used to create the
+                // pcaViz object.
+                pcaViz.player.start({
                     durationInMilliseconds: 10000,
                     updateFreqInMilliseconds: 16.67,  // 60 fps
                     loop: true,
-                    playerControlsID: "controls",
-                    windowAverageSize: 1,
-                    // Normally loadPDBTxt() would return the model, but NGL Viewer
-                    // uses promises. So set the browserSim._model variable directly.
-                    loadPDBTxt: (pdbTxt, viewer, browserSim) => {
-                        viewer.loadFile(
-                            new Blob(
-                                [pdbTxt],
-                                {type: "text/plain"}
-                            ),
-                            {ext: "pdb", defaultRepresentation: true}
-                        ).then((e) => {
-                            browserSim._model = e;  // Cannot return, because it's a promise
-                        });
-                    },
-                    updateAtomPositions: (newAtomCoors, model, viewer, browserSim) => {
-                        var atomIdx = 0; window.m = model;
-                        model.structure.eachAtom((atom, idx) => {
-                            var coors = newAtomCoors[atomIdx];
-                            atom["x"] = coors[0];
-                            atom["y"] = coors[1];
-                            atom["z"] = coors[2];
-                            atomIdx++;
-                        });
-                    },
-                    render: (model, viewer, browserSim) => model.rebuildRepresentations(),
+                    windowAverageSize: 25
                 });
 
-                browserSim.io.loadJSON("data.json", () => {
-                    browserSim.player.start({
-                        durationInMilliseconds: 10000,
-                        updateFreqInMilliseconds: 16.67,  // 60 fps
-                        loop: true,
-                        windowAverageSize: 25
-                    });
-
-                    window.browserSim = browserSim;
-
-                    // setTimeout(() => {
-                    //    browserSim.player.stop();
-                    //    setTimeout(() => {
-                    //        browserSim.player.toFrame(159);
-                    //    }, 1000);
-                    // }, 5000);
-                });
-            }
-            makeBrowserSim(viewer, 'GENERIC');
+                // Other available PCAViz functions:
+                // pcaViz.player.stop();
+                // pcaViz.player.toFrame(10);
+            });
         </script>
-
     </body>
 </html>

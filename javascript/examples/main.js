@@ -1,10 +1,10 @@
-var BrowserSim = /** @class */ (function () {
+var PCAViz = /** @class */ (function () {
     /**
-     * Constructor for the BrowserSim class.
+     * Constructor for the PCAViz class.
      * @param  {Object<string,*>} params
      * @returns void
      */
-    function BrowserSim(params) {
+    function PCAViz(params) {
         // Note that the below are public so they can be accessed from other
         // classes. But they are not public to the user and so do not need to be
         // protected from closure compiler.
@@ -37,17 +37,17 @@ var BrowserSim = /** @class */ (function () {
      * @param  {Object<string,*>} updatedParams
      * @returns void
      */
-    BrowserSim.prototype.updateParams = function (updatedParams) {
+    PCAViz.prototype.updateParams = function (updatedParams) {
         var _this = this;
         // Set some common error text blurbs.
-        var genericModeBut = 'You are running BrowserSim in GENERIC mode, but ' +
+        var genericModeBut = 'You are running PCAViz in GENERIC mode, but ' +
             'you haven\'t specified ';
         var modelVar = 'The "model" variable is whatever your loadPDBTxt(...) ' +
             'function returns.';
-        var viewerVar = 'The "viewer" variable is the user-specified BrowserSim ' +
+        var viewerVar = 'The "viewer" variable is the user-specified PCAViz ' +
             '"viewer" parameter.';
-        var browserSimVar = 'The "browserSim" variable is the instantiated ' +
-            'BrowserSim object.';
+        var pcaVizVar = 'The "pcaViz" variable is the instantiated ' +
+            'PCAViz object.';
         // Set the defaults and keeps any previous ones not now specified.
         var defaults = {
             "viewer": undefined,
@@ -57,16 +57,16 @@ var BrowserSim = /** @class */ (function () {
             "loop": true,
             "windowAverageSize": 1,
             "parent": this,
-            "loadPDBTxt": function (pdbTxt, viewer, browserSim) {
+            "loadPDBTxt": function (pdbTxt, viewer, pcaViz) {
                 throw new Error(genericModeBut +
-                    'a loadPDBTxt(pdbTxt, viewer, browserSim) function. This ' +
+                    'a loadPDBTxt(pdbTxt, viewer, pcaViz) function. This ' +
                     'function loads PDB text into the viewer and optionally ' +
                     'returns a model object. For your reference, the current ' +
                     'value of the "pdbTxt" variable (a string) starts with:\n\n' +
                     pdbTxt.toString().slice(0, 500)) + "\n\n" + viewerVar + "\n\n" +
-                    browserSimVar + "\n\n";
+                    pcaVizVar + "\n\n";
             },
-            "updateAtomPositions": function (newAtomCoors, model, viewer, browserSim) {
+            "updateAtomPositions": function (newAtomCoors, model, viewer, pcaViz) {
                 var goodCoorRep = "[\n";
                 for (var idx in newAtomCoors) {
                     if (newAtomCoors.hasOwnProperty(idx)) {
@@ -80,18 +80,18 @@ var BrowserSim = /** @class */ (function () {
                 }
                 goodCoorRep += "  ...\n]";
                 throw new Error(genericModeBut + 'an updateAtomPositions(newAtomCoors, ' +
-                    'model, viewer, browserSim) function. This function provides ' +
+                    'model, viewer, pcaViz) function. This function provides ' +
                     'the updated atom coordinates for the current frame. The ' +
                     'value of the "newAtomCoors" variable (a list of Float32Array ' +
                     'containing the new coordinates of the atoms) ' +
                     'looks like:\n\n' + goodCoorRep + '\n\n' + modelVar +
-                    "\n\n" + viewerVar + "\n\n" + browserSimVar + "\n\n");
+                    "\n\n" + viewerVar + "\n\n" + pcaVizVar + "\n\n");
             },
-            "render": function (model, viewer, browserSim) {
-                throw new Error(genericModeBut + 'a render(model, viewer, browserSim) function. ' +
+            "render": function (model, viewer, pcaViz) {
+                throw new Error(genericModeBut + 'a render(model, viewer, pcaViz) function. ' +
                     'This function runs every time the atom coordinates ' +
                     'change, to update what the viewer renders. ' + modelVar +
-                    ' ' + viewerVar + ' ' + browserSimVar + "\n\n");
+                    ' ' + viewerVar + ' ' + pcaVizVar + "\n\n");
             }
         };
         this._params = jQuery.extend(defaults, this._params, updatedParams);
@@ -121,7 +121,7 @@ var BrowserSim = /** @class */ (function () {
      * @returns Float32Array  A list of Float32Array containing the atom
      *                        coordinates, for each frame.
      */
-    BrowserSim.prototype.getFrameCoors = function (frame) {
+    PCAViz.prototype.getFrameCoors = function (frame) {
         var _this = this;
         // Consider multiple frames if necessary.
         var framesToAvg = MathUtils._range(frame - this._params["halfWindowSize"], frame + this._params["halfWindowSize"] + 1);
@@ -163,19 +163,19 @@ var BrowserSim = /** @class */ (function () {
         });
         return coors;
     };
-    return BrowserSim;
+    return PCAViz;
 }());
 var _IO = /** @class */ (function () {
     /**
      * The constructor of an _IO class.
-     * @param  {*} parent The parent class (BrowserSim Object).
+     * @param  {*} parent The parent class (PCAViz Object).
      */
     function _IO(parent) {
         this._parent = undefined;
         this._parent = parent;
     }
     /**
-     * Loads a JSON file written from the BrowserSim python script. Contains
+     * Loads a JSON file written from the PCAViz python script. Contains
      * all the information needed to visualize the simulation.
      * @param  {string}   path      The JSON path.
      * @param  {Function} callBack  The callback function once loaded.
@@ -311,7 +311,7 @@ var _IO = /** @class */ (function () {
 var _Viewer = /** @class */ (function () {
     /**
      * The constructor of a _Viewer class.
-     * @param  {*} parent The parent class (BrowserSim Object).
+     * @param  {*} parent The parent class (PCAViz Object).
      */
     function _Viewer(parent) {
         this._model = undefined;
@@ -505,7 +505,7 @@ var _Viewer = /** @class */ (function () {
 var _Player = /** @class */ (function () {
     /**
      * The constructor of a _Player class.
-     * @param  {*} parent The parent class (BrowserSim Object).
+     * @param  {*} parent The parent class (PCAViz Object).
      */
     function _Player(parent) {
         this._startTime = undefined;
@@ -622,4 +622,4 @@ var MathUtils;
     }
     MathUtils.multiplyFloat32ArrayByScalar = multiplyFloat32ArrayByScalar;
 })(MathUtils || (MathUtils = {}));
-window["BrowserSim"] = BrowserSim; // To survive closure compiler.
+window["PCAViz"] = PCAViz; // To survive closure compiler.

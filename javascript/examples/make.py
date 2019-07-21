@@ -1,11 +1,15 @@
 # This creates the demo files showing how to use the browser component.
+# I'm now going to do this by hand
+
+import sys
+sys.exit(0)
 
 import shutil
 
 # Copy the js files.
-shutil.copy("../BrowserSim.js", "./")
-shutil.copy("../BrowserSim.min.js", "./")
-shutil.copy("../data.json", "./")
+shutil.copy("../PCAViz.js", "./")
+shutil.copy("../PCAViz.min.js", "./")
+shutil.copy("../sim.json", "./")
 
 # A function to return a general HTML template.
 def HTML(title, body):
@@ -61,14 +65,14 @@ def demo_HTML(page):
         <!-- Load the javascript files -->
         <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
         """ + "\n        ".join(page.external_js) + """
-        <script src="BrowserSim.min.js"></script>
+        <script src="PCAViz.min.js"></script>
         <script>
             // Setup """ + page.title + """
             """ + "\n            ".join(page.viewer_setup) + """
 
             // Run sims in the browsers
-            function makeBrowserSim(viewer, viewerType) {
-                let browserSim = new BrowserSim({
+            function makePCAViz(viewer, viewerType) {
+                let pcaViz = new PCAViz({
                     viewer: viewer,
                     viewerType: viewerType,
                     visStyle: """ + page.vis_style + """
@@ -79,25 +83,25 @@ def demo_HTML(page):
                     windowAverageSize: 1,""" + extra_browser_sim_params + """
                 });
 
-                browserSim.io.loadJSON("data.json", () => {
-                    browserSim.player.start({
+                pcaViz.io.loadJSON("sim.json", () => {
+                    pcaViz.player.start({
                         durationInMilliseconds: 10000,
                         updateFreqInMilliseconds: 16.67,  // 60 fps
                         loop: true,
                         windowAverageSize: 25
                     });
 
-                    window.browserSim = browserSim;
+                    window.pcaViz = pcaViz;
 
                     // setTimeout(() => {
-                    //    browserSim.player.stop();
+                    //    pcaViz.player.stop();
                     //    setTimeout(() => {
-                    //        browserSim.player.toFrame(159);
+                    //        pcaViz.player.toFrame(159);
                     //    }, 1000);
                     // }, 5000);
                 });
             }
-            makeBrowserSim(viewer, '""" + page.id + """');
+            makePCAViz(viewer, '""" + page.id + """');
         </script>
 """
     return HTML(page.title, new_body)
@@ -135,8 +139,8 @@ pages = [
         "GENERIC",
         "undefined,  // Not needed when in generic mode",
         [
-            'loadPDBTxt: (pdbTxt, viewer, browserSim) => viewer.addModel(pdbTxt, "pdb"),',
-            'updateAtomPositions: (newAtomCoors, model, viewer, browserSim) => {',
+            'loadPDBTxt: (pdbTxt, viewer, pcaViz) => viewer.addModel(pdbTxt, "pdb"),',
+            'updateAtomPositions: (newAtomCoors, model, viewer, pcaViz) => {',
             '    var atoms = model.selectedAtoms({});',
             '    for (let atomIdx=0; atomIdx<atoms.length; atomIdx++) {',
             '        let coors = newAtomCoors[atomIdx];',
@@ -145,7 +149,7 @@ pages = [
             '        atoms[atomIdx]["z"] = coors[2];',
             '    }',
             '},',
-            'render: (model, viewer, browserSim) => {',
+            'render: (model, viewer, pcaViz) => {',
             '    model.setStyle(',
             '        {}, { sphere: { color: "green" }}',
             '    );',
@@ -172,8 +176,8 @@ pages = [
         "undefined,  // Not needed when in generic mode",
         [
             '// Normally loadPDBTxt() would return the model, but NGL Viewer',
-            '// uses promises. So set the browserSim._model variable directly.',
-            'loadPDBTxt: (pdbTxt, viewer, browserSim) => {',
+            '// uses promises. So set the pcaViz._model variable directly.',
+            'loadPDBTxt: (pdbTxt, viewer, pcaViz) => {',
             '    viewer.loadFile(',
             '        new Blob(',
             '            [pdbTxt],',
@@ -181,10 +185,10 @@ pages = [
             '        ),',
             '        {ext: "pdb", defaultRepresentation: true}',
             '    ).then((e) => {',
-            '        browserSim._model = e;  // Cannot return, because it\'s a promise',
+            '        pcaViz._model = e;  // Cannot return, because it\'s a promise',
             '    });',
             '},',
-            'updateAtomPositions: (newAtomCoors, model, viewer, browserSim) => {',
+            'updateAtomPositions: (newAtomCoors, model, viewer, pcaViz) => {',
             '    var atomIdx = 0; window.m = model;',
             '    model.structure.eachAtom((atom, idx) => {',
             '        var coors = newAtomCoors[atomIdx];',
@@ -194,7 +198,7 @@ pages = [
             '        atomIdx++;',
             '    });',
             '},',
-            'render: (model, viewer, browserSim) => model.rebuildRepresentations(),',
+            'render: (model, viewer, pcaViz) => model.rebuildRepresentations(),',
         ]
     ),
     Page("PV", "pv.html", [
@@ -223,8 +227,8 @@ pages = [
         "GENERIC",
         "undefined,  // Not needed when in generic mode",
         [
-            'loadPDBTxt: (pdbTxt, viewer, browserSim) => viewer.library.io.pdb(pdbTxt),',
-            'updateAtomPositions: (newAtomCoors, model, viewer, browserSim) => {',
+            'loadPDBTxt: (pdbTxt, viewer, pcaViz) => viewer.library.io.pdb(pdbTxt),',
+            'updateAtomPositions: (newAtomCoors, model, viewer, pcaViz) => {',
             '    let atomIdx = 0;',
             '    model.eachAtom((atom, idx) => {',
             '        let coors = newAtomCoors[atomIdx];',
@@ -232,7 +236,7 @@ pages = [
             '        atomIdx++;',
             '    });',
             '},',
-            'render: (model, viewer, browserSim) => {',
+            'render: (model, viewer, pcaViz) => {',
             '    viewer.viewer.clear();  // Because encapsulated',
             '    viewer.viewer.spheres("all", model);',
             '},',
@@ -245,7 +249,7 @@ with open("index.html", "w") as f:
     linksTxt = "\n".join(
         ['        <p><a href="' + page.filename + '">' + page.title + '</a></p>' for page in pages]
     )
-    f.write(HTML("BrowserSim Examples", linksTxt))
+    f.write(HTML("PCAViz Examples", linksTxt))
 
 # Create the individual files.
 for page in pages:

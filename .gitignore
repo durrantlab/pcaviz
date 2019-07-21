@@ -5,3 +5,4 @@ test_files/*compressed.json*
 .vscode
 .DS_Store
 old*
+compress_decompress_test

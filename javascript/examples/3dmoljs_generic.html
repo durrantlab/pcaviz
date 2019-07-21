@@ -1,10 +1,12 @@
+<!DOCTYPE html>
 <html>
     <head>
         <title>3DMol.js Generic Mode</title>
     </head>
     <body>
         <style>
-            /* The below position the viewer div and controls div relative to each other. */
+            /* The below position the viewer div and controls div relative to
+            each other. */
             #vis-and-controls {
                 width: 60%;
                 height: 400px;
@@ -29,7 +31,11 @@
             .pcaviz-button img { height: 25px; }
             .pcaviz-slider-container { padding-left: 10px; }
         </style>
+
         <h1>3DMol.js Generic Mode</h1>
+
+        <!-- Create containers for both 3DMol.js and the trajectory controls
+        (e.g., play button) -->
         <div id="vis-and-controls">
             <div id="viscontainer"></div>
             <div id="controls"></div>
@@ -38,62 +44,107 @@
         <!-- Load the javascript files -->
         <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
         <script src="http://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
-        <script src="BrowserSim.min.js"></script>
+        <script src="PCAViz.min.js"></script>
+
         <script>
-            // Setup 3DMol.js Generic Mode
+            // Setup 3DMol.js
             let element = jQuery('#viscontainer');
             let config = {backgroundColor: 'white'};
             let viewer = $3Dmol.createViewer(element, config);
 
-            // Run sims in the browsers
-            function makeBrowserSim(viewer, viewerType) {
-                let browserSim = new BrowserSim({
-                    viewer: viewer,
-                    viewerType: viewerType,
-                    visStyle: undefined,  // Not needed when in generic mode
+            // If you run PCAViz in GENERIC mode, PCAViz won't use its
+            // built-in 3DMol.js-, NGLViewer-, or PV-specific functions for
+            // 1) loading molecular models from PDB text, 2) updating atom
+            // positions, and 3) rendering the models. You'll need to
+            // define those functions yourself. GENERIC mode gives advanced
+            // users more control over PCAViz and allows them to adapt the
+            // library for use with other WebGL-based
+            // molecular-visualization libraries. Most users should simply
+            // use PCAViz in 3DMOLJS, NGL, or PV mode.
+            viewerType = "GENERIC";
+
+            // Create a PCAViz object with your desired parameters.
+            let pcaViz = new PCAViz({
+                // The 3DMol.js viewer object
+                viewer: viewer,
+
+                // The type of viewer object (3DMOLJS, NGL, PV, or GENERIC).
+                // GENERIC in this case.
+                viewerType: viewerType,
+
+                // ???????
+                visStyle: undefined,  // Not needed when in generic mode
+
+                // The number of milliseconds it should take to play the
+                // simulation from start to finish.
+                durationInMilliseconds: 10000,
+
+                // How often to upate the atomic coordinates. Note that
+                // updating every 16.67 ms gives 60 frames per second.
+                updateFreqInMilliseconds: 16.67,
+
+                // Whether to restart the simulation once it finishes (looping
+                // playback).
+                loop: true,
+
+                // The HTML ID of the DOM element where PCAViz should add
+                // playback controls (e.g., the play button).
+                playerControlsID: "controls",
+
+                // The number of frames PCAViz should consider when smoothing
+                // the trajectory motions via a windowed average.
+                windowAverageSize: 1,
+
+                // Because you're running PCAViz in GENERIC mode, you have to
+                // tell it how to serve the PDB-formatted coordinates it
+                // generates to your molecular-vizualization library of choice
+                // (3DMol.js in this case).
+                loadPDBTxt: (pdbTxt, viewer, pcaViz) => viewer.addModel(pdbTxt, "pdb"),
+
+                // In GENERIC mode, you have to tell PCAViz how to update the
+                // atom positions of your model.
+                updateAtomPositions: (newAtomCoors, model, viewer, pcaViz) => {
+                    var atoms = model.selectedAtoms({});
+                    for (let atomIdx=0; atomIdx<atoms.length; atomIdx++) {
+                        let coors = newAtomCoors[atomIdx];
+                        atoms[atomIdx]["x"] = coors[0];
+                        atoms[atomIdx]["y"] = coors[1];
+                        atoms[atomIdx]["z"] = coors[2];
+                    }
+                },
+
+                // In GENERIC mode, you have to tell PCAViz how to render your
+                // model after every atom-position update. For 3DMol.js, it's
+                // important to also set the style every update.
+                render: (model, viewer, pcaViz) => {
+                    model.setStyle(
+                        {}, {cartoon:{}, stick:{radius:.5,colorscheme:'Jmol'}}
+                    );
+                    viewer.render();
+                },
+            });
+
+            // Load in the PCAViz JSON file, created with the PCAViz
+            // Compressor.
+            pcaViz.io.loadJSON("sim.json", () => {
+                // Now that the model/simulation is loaded, you might want to
+                // center it using 3DMol.js functions.
+                viewer.zoomTo();
+
+                // Now start the animation. Note that any paramters passed to
+                // the start function overwrite those used to create the
+                // pcaViz object.
+                pcaViz.player.start({
                     durationInMilliseconds: 10000,
                     updateFreqInMilliseconds: 16.67,  // 60 fps
                     loop: true,
-                    playerControlsID: "controls",
-                    windowAverageSize: 1,
-                    loadPDBTxt: (pdbTxt, viewer, browserSim) => viewer.addModel(pdbTxt, "pdb"),
-                    updateAtomPositions: (newAtomCoors, model, viewer, browserSim) => {
-                        var atoms = model.selectedAtoms({});
-                        for (let atomIdx=0; atomIdx<atoms.length; atomIdx++) {
-                            let coors = newAtomCoors[atomIdx];
-                            atoms[atomIdx]["x"] = coors[0];
-                            atoms[atomIdx]["y"] = coors[1];
-                            atoms[atomIdx]["z"] = coors[2];
-                        }
-                    },
-                    render: (model, viewer, browserSim) => {
-                        model.setStyle(
-                            {}, { sphere: { color: "green" }}
-                        );
-                        viewer.render();
-                    },
+                    windowAverageSize: 25
                 });
 
-                browserSim.io.loadJSON("data.json", () => {
-                    browserSim.player.start({
-                        durationInMilliseconds: 10000,
-                        updateFreqInMilliseconds: 16.67,  // 60 fps
-                        loop: true,
-                        windowAverageSize: 25
-                    });
-
-                    window.browserSim = browserSim;
-
-                    // setTimeout(() => {
-                    //    browserSim.player.stop();
-                    //    setTimeout(() => {
-                    //        browserSim.player.toFrame(159);
-                    //    }, 1000);
-                    // }, 5000);
-                });
-            }
-            makeBrowserSim(viewer, 'GENERIC');
+                // Other available PCAViz functions:
+                // pcaViz.player.stop();
+                // pcaViz.player.toFrame(10);
+            });
         </script>
-
     </body>
 </html>

@@ -6,15 +6,15 @@
 //     }
 // })(window["TESTING"] || (window["TESTING"] = {}));
 // Put it all in a big namespace to avoid having all the classes be global.
-var BrowserSimNameSpace;
-(function (BrowserSimNameSpace) {
-    var BrowserSim = /** @class */ (function () {
+var PCAVizNameSpace;
+(function (PCAVizNameSpace) {
+    var PCAViz = /** @class */ (function () {
         /**
-         * Constructor for the BrowserSim class.
+         * Constructor for the PCAViz class.
          * @param  {Object<string,*>} params
          * @returns void
          */
-        function BrowserSim(params) {
+        function PCAViz(params) {
             // Note that the below are public so they can be accessed from other
             // classes. But they are not public to the user and so do not need to be
             // protected from closure compiler.
@@ -52,17 +52,17 @@ var BrowserSimNameSpace;
          * @param  {Object<string,*>} updatedParams
          * @returns void
          */
-        BrowserSim.prototype.updateParams = function (updatedParams) {
+        PCAViz.prototype.updateParams = function (updatedParams) {
             var _this = this;
             // Set some common error text blurbs.
-            var genericModeBut = 'You are running BrowserSim in GENERIC mode, but ' +
+            var genericModeBut = 'You are running PCAViz in GENERIC mode, but ' +
                 'you haven\'t specified ';
             var modelVar = 'The "model" variable is whatever your loadPDBTxt(...) ' +
                 'function returns.';
-            var viewerVar = 'The "viewer" variable is the user-specified BrowserSim ' +
+            var viewerVar = 'The "viewer" variable is the user-specified PCAViz ' +
                 '"viewer" parameter.';
-            var browserSimVar = 'The "browserSim" variable is the instantiated ' +
-                'BrowserSim object.';
+            var pcaVizVar = 'The "pcaViz" variable is the instantiated ' +
+                'PCAViz object.';
             // Set the defaults and keeps any previous ones not now specified.
             var defaults = {
                 "viewer": undefined,
@@ -75,16 +75,16 @@ var BrowserSimNameSpace;
                 "windowAverageSize": 1,
                 "playerControlsID": "",
                 "parent": this,
-                "loadPDBTxt": function (pdbTxt, viewer, browserSim) {
+                "loadPDBTxt": function (pdbTxt, viewer, pcaViz) {
                     throw new Error(genericModeBut +
-                        'a loadPDBTxt(pdbTxt, viewer, browserSim) function. This ' +
+                        'a loadPDBTxt(pdbTxt, viewer, pcaViz) function. This ' +
                         'function loads PDB text into the viewer and optionally ' +
                         'returns a model object. For your reference, the current ' +
                         'value of the "pdbTxt" variable (a string) starts with:\n\n' +
                         pdbTxt.toString().slice(0, 500)) + "\n\n" + viewerVar + "\n\n" +
-                        browserSimVar + "\n\n";
+                        pcaVizVar + "\n\n";
                 },
-                "updateAtomPositions": function (newAtomCoors, model, viewer, browserSim) {
+                "updateAtomPositions": function (newAtomCoors, model, viewer, pcaViz) {
                     var goodCoorRep = "[\n";
                     for (var idx in newAtomCoors) {
                         if (newAtomCoors.hasOwnProperty(idx)) {
@@ -98,18 +98,18 @@ var BrowserSimNameSpace;
                     }
                     goodCoorRep += "  ...\n]";
                     throw new Error(genericModeBut + 'an updateAtomPositions(newAtomCoors, ' +
-                        'model, viewer, browserSim) function. This function provides ' +
+                        'model, viewer, pcaViz) function. This function provides ' +
                         'the updated atom coordinates for the current frame. The ' +
                         'value of the "newAtomCoors" variable (a list of Float32Array ' +
                         'containing the new coordinates of the atoms) ' +
                         'looks like:\n\n' + goodCoorRep + '\n\n' + modelVar +
-                        "\n\n" + viewerVar + "\n\n" + browserSimVar + "\n\n");
+                        "\n\n" + viewerVar + "\n\n" + pcaVizVar + "\n\n");
                 },
-                "render": function (model, viewer, browserSim) {
-                    throw new Error(genericModeBut + 'a render(model, viewer, browserSim) function. ' +
+                "render": function (model, viewer, pcaViz) {
+                    throw new Error(genericModeBut + 'a render(model, viewer, pcaViz) function. ' +
                         'This function runs every time the atom coordinates ' +
                         'change, to update what the viewer renders. ' + modelVar +
-                        ' ' + viewerVar + ' ' + browserSimVar + "\n\n");
+                        ' ' + viewerVar + ' ' + pcaVizVar + "\n\n");
                 }
             };
             this._params = jjQuery.extend(defaults, this._params, updatedParams);
@@ -172,7 +172,7 @@ var BrowserSimNameSpace;
          * @returns Float32Array  A list of Float32Array containing the atom
          *                        coordinates, for each frame.
          */
-        BrowserSim.prototype.getFrameCoors = function (frame) {
+        PCAViz.prototype.getFrameCoors = function (frame) {
             var coors = Array();
             // console.log(this._params["cacheModeNum"], this._cachedFrameCoors, frame, this._cachedFrameCoors[frame]);
             if ((this._params["cacheModeNum"] === 0) || (this._cachedFrameCoors[frame] === undefined)) {
@@ -248,7 +248,7 @@ var BrowserSimNameSpace;
             }
             return coors;
         };
-        BrowserSim.prototype.cacheAllFrameCoorsIfNeeded = function () {
+        PCAViz.prototype.cacheAllFrameCoorsIfNeeded = function () {
             // If the user has requested pre-caching, load all frames now.
             if (this._params["cacheModeNum"] === 2) {
                 this._cachedFrameCoors = {}; // Reset everything.
@@ -258,20 +258,20 @@ var BrowserSimNameSpace;
                 }
             }
         };
-        return BrowserSim;
+        return PCAViz;
     }());
-    BrowserSimNameSpace.BrowserSim = BrowserSim;
+    PCAVizNameSpace.PCAViz = PCAViz;
     var _IO = /** @class */ (function () {
         /**
          * The constructor of an _IO class.
-         * @param  {*} parent The parent class (BrowserSim Object).
+         * @param  {*} parent The parent class (PCAViz Object).
          */
         function _IO(parent) {
             this._parent = undefined;
             this._parent = parent;
         }
         /**
-         * Loads a JSON file written from the BrowserSim python script. Contains
+         * Loads a JSON file written from the PCAViz python script. Contains
          * all the information needed to visualize the simulation.
          * @param  {string}   path      The JSON path.
          * @param  {Function} callBack  The callback function once loaded.
@@ -563,7 +563,7 @@ var BrowserSimNameSpace;
     var _Viewer = /** @class */ (function () {
         /**
          * The constructor of a _Viewer class.
-         * @param  {*} parent The parent class (BrowserSim Object).
+         * @param  {*} parent The parent class (PCAViz Object).
          */
         function _Viewer(parent) {
             this._model = undefined;
@@ -756,7 +756,7 @@ var BrowserSimNameSpace;
     var _Player = /** @class */ (function () {
         /**
          * The constructor of a _Player class.
-         * @param  {*} parent The parent class (BrowserSim Object).
+         * @param  {*} parent The parent class (PCAViz Object).
          */
         function _Player(parent) {
             var _this = this;
@@ -924,7 +924,7 @@ var BrowserSimNameSpace;
     var _PlayerControls = /** @class */ (function () {
         /**
          * The constructor of an _IO class.
-         * @param  {*} parent The parent class (BrowserSim Object).
+         * @param  {*} parent The parent class (PCAViz Object).
          */
         function _PlayerControls(parent) {
             var _this = this;
@@ -1071,7 +1071,7 @@ var BrowserSimNameSpace;
         }
         jjQuery.getJSON = getJSON;
     })(jjQuery || (jjQuery = {}));
-})(BrowserSimNameSpace || (BrowserSimNameSpace = {}));
+})(PCAVizNameSpace || (PCAVizNameSpace = {}));
 // Leave here in case you want to use from nodejs in the future.
 // let runningUnderNodeJS = false;
 // try {
@@ -1110,9 +1110,9 @@ var BrowserSimNameSpace;
         };
 }());
 // To survive closure compiler. See fix_namespaces.py to see where
-// window["BrowserSimNameSpace"] comes from.
-window["BrowserSim"] = window["BrowserSimNameSpace"].BrowserSim;
-// (<any>window)["BrowserSim"] = BrowserSimNameSpace.BrowserSim;
+// window["PCAVizNameSpace"] comes from.
+window["PCAViz"] = window["PCAVizNameSpace"].PCAViz;
+// (<any>window)["PCAViz"] = PCAVizNameSpace.PCAViz;
 // } else {
 //     // It's running under node js. Note that you won't be using the closure
 //     // compiled version of the code from nodejs, so no need to worry about
@@ -1141,18 +1141,18 @@ window["BrowserSim"] = window["BrowserSimNameSpace"].BrowserSim;
 //         }
 //     }
 //     // Now create the
-//     let browserSim = new BrowserSim({
+//     let pcaViz = new PCAViz({
 //         viewer: {},
 //         viewerType: 'GENERIC',
 //         windowAverageSize: 1,
-//         loadPDBTxt: (pdbTxt, viewer, browserSim) => { return; },  // viewer.addModel(pdbTxt, "pdb"),
-//         updateAtomPositions: (newAtomCoors, model, viewer, browserSim) => { return ; },
-//         render: (model, viewer, browserSim) => {
+//         loadPDBTxt: (pdbTxt, viewer, pcaViz) => { return; },  // viewer.addModel(pdbTxt, "pdb"),
+//         updateAtomPositions: (newAtomCoors, model, viewer, pcaViz) => { return ; },
+//         render: (model, viewer, pcaViz) => {
 //             return;
 //         },
 //     });
-//     browserSim["io"].loadJSON("data.json", () => {
-//         let func = browserSim["io"].makePDB.bind(browserSim["io"]);
+//     pcaViz["io"].loadJSON("data.json", () => {
+//         let func = pcaViz["io"].makePDB.bind(pcaViz["io"]);
 //         let pdbTxt = func(jsonData);
 //         console.log(pdbTxt);
 //     });

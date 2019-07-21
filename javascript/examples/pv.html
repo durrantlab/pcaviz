@@ -1,10 +1,12 @@
+<!DOCTYPE html>
 <html>
     <head>
         <title>PV</title>
     </head>
     <body>
         <style>
-            /* The below position the viewer div and controls div relative to each other. */
+            /* The below position the viewer div and controls div relative to
+            each other. */
             #vis-and-controls {
                 width: 60%;
                 height: 400px;
@@ -29,7 +31,11 @@
             .pcaviz-button img { height: 25px; }
             .pcaviz-slider-container { padding-left: 10px; }
         </style>
+
         <h1>PV</h1>
+
+        <!-- Create containers for both pv and the trajectory controls (e.g.,
+        play button) -->
         <div id="vis-and-controls">
             <div id="viscontainer"></div>
             <div id="controls"></div>
@@ -38,7 +44,8 @@
         <!-- Load the javascript files -->
         <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
         <script src="http://biasmv.github.io/pv/js/pv.min.js"></script>
-        <script src="BrowserSim.min.js"></script>
+        <script src="PCAViz.min.js"></script>
+
         <script>
             // Setup PV
             var pvViewer = pv.Viewer(
@@ -48,39 +55,72 @@
             // Not entirely encapsulated, so put both the library and the viewer in a single object.
             var viewer = {viewer: pvViewer, library: pv};
 
-            // Run sims in the browsers
-            function makeBrowserSim(viewer, viewerType) {
-                let browserSim = new BrowserSim({
-                    viewer: viewer,
-                    viewerType: viewerType,
-                    visStyle: (structure) => { pvViewer.spheres('all', structure); },  // Callback to set visStyle.
-                    durationInMilliseconds: 10000,
-                    updateFreqInMilliseconds: 16.67,  // 60 fps
-                    loop: true,
-                    playerControlsID: "controls",
-                    windowAverageSize: 1,
-                });
+            // Tell PCAViz that you want it to interface with the PV
+            // molecular-visualization library.
+            viewerType = "PV";
 
-                browserSim.io.loadJSON("data.json", () => {
-                    browserSim.player.start({
+            // Create a PCAViz object with your desired parameters.
+            let pcaViz = new PCAViz({
+                // The PV viewer object.
+                viewer: viewer,
+
+                // The type of viewer object (3DMOLJS, NGL, PV, or GENERIC).
+                // PV in this case.
+                viewerType: viewerType,
+
+                // A callback function that sets the visualization style of
+                // the model.
+                visStyle: (structure) => { pvViewer.spheres('all', structure); },
+
+                // The number of milliseconds it should take to play the
+                // simulation from start to finish.
+                durationInMilliseconds: 10000,
+
+                // How often to upate the atomic coordinates. Note that
+                // updating every 16.67 ms gives 60 frames per second.
+                updateFreqInMilliseconds: 16.67,
+
+                // Whether to restart the simulation once it finishes (looping
+                // playback).
+                loop: true,
+
+                // The HTML ID of the DOM element where PCAViz should add
+                // playback controls (e.g., the play button).
+                playerControlsID: "controls",
+
+                // The number of frames PCAViz should consider when smoothing
+                // the trajectory motions via a windowed average.
+                windowAverageSize: 1,
+            });
+
+            // Load in the PCAViz JSON file, created with the PCAViz
+            // Compressor.
+            pcaViz.io.loadJSON("sim.json", () => {
+                viewer.viewer.on("viewerReady", () => {
+                    // Now that the model/simulation is loaded, you might want
+                    // to center it using PV functions. For reasons I don't
+                    // understand, it is good to delay this a bit. Apparently
+                    // the model isn't immediately "seen" when initially
+                    // loaded.
+                    setTimeout(() => {
+                        viewer.viewer.autoZoom()
+                    }, 500);
+
+                    // Now start the animation. Note that any paramters passed to
+                    // the start function overwrite those used to create the
+                    // pcaViz object.
+                    pcaViz.player.start({
                         durationInMilliseconds: 10000,
                         updateFreqInMilliseconds: 16.67,  // 60 fps
                         loop: true,
                         windowAverageSize: 25
                     });
 
-                    window.browserSim = browserSim;
-
-                    // setTimeout(() => {
-                    //    browserSim.player.stop();
-                    //    setTimeout(() => {
-                    //        browserSim.player.toFrame(159);
-                    //    }, 1000);
-                    // }, 5000);
-                });
-            }
-            makeBrowserSim(viewer, 'PV');
+                    // Other available PCAViz functions:
+                    // pcaViz.player.stop();
+                    // pcaViz.player.toFrame(10);
+                })
+            });
         </script>
-
     </body>
 </html>
