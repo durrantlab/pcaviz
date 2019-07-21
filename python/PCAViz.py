@@ -1,5 +1,8 @@
 import json
 import csv
+import os
+import sys
+import shutil
 
 import MDAnalysis
 from MDAnalysis.analysis import rms
@@ -215,6 +218,25 @@ def save_uncompressed_pdb(coors, atom_inf, output_filename):
 if __name__ == '__main__':
     # Get user provided parameters and unpack frequently used parameters
     params = get_params()
+    if "test" in params:
+        output_dir = "tmp_testing" + os.sep
+        print("Running in test mode. All other parameters will be ignored.")
+        if os.path.exists(output_dir):
+            print("Directory already exists: " + output_dir + "! Delete this directory before running the test.")
+            sys.exit(0)
+        os.mkdir(output_dir)
+        params = {
+            "top_file": "1J8K_example.pdb",
+            "coor_file": "1J8K_example.pdb",
+            "selection": "name C N CA",
+            "output_dir": output_dir,
+            "stride": 2,
+            "cum_var": 0.8,
+            "precision": 1,
+            "check_accuracy": True,
+            "test": True
+        }
+
     coor_file = params['coor_file']
     top_file = params['top_file']
     num_decimals = params['precision']
@@ -321,3 +343,43 @@ if __name__ == '__main__':
     # Write the file.
     with open(output_name, 'w') as write_file:
         write_file.write(json_txt)
+
+    # If it's running in test mode, finish the test
+    if "test" in params:
+        print("")
+        print("Checking if calculated mean RMSD is 0.53...")
+        mean = [l for l in open("tmp_testing" + os.sep + "1J8K_example.starting_vs_expanded_RMSD.csv")
+                if "mean" in l][0].split(",")[1][:4]
+        if (mean == "0.53"):
+            print("\tPassed!")
+        else:
+            print("\tFailed!")
+            shutil.rmtree('tmp_testing')
+            sys.exit(0)
+
+        PCA_inf = json.load(open("tmp_testing" + os.sep + "1J8K_example.compressed.json"))
+        print("Checking 846 coordinates (282 atoms * 3)...")
+        if len(PCA_inf["coors"]) == 846 and len(PCA_inf["first_coors"]) == 846:
+            print("\tPassed!")
+        else:
+            print("\tFailed!")
+            shutil.rmtree('tmp_testing')
+            sys.exit(0)
+
+        print("Checking 3 frames (5 original frames, stride 2)...")
+        if len(PCA_inf["coeffs"]) == 3:
+            print("\tPassed!")
+        else:
+            print("\tFailed!")
+            shutil.rmtree('tmp_testing')
+            sys.exit(0)
+
+        print("Checking 2 principal components...")
+        if len(PCA_inf["vecs"]) == 2:
+            print("\tPassed!")
+        else:
+            print("\tFailed!")
+            shutil.rmtree('tmp_testing')
+            sys.exit(0)
+
+        shutil.rmtree('tmp_testing')

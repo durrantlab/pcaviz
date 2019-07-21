@@ -74,6 +74,8 @@ def get_params():
                             help='Create a csv file containing the frame-to-frame RMSDs between ' +\
                                  'original- and decompressed-trajectory frames. Useful for testing ' +\
                                  'the impact of different settings on atom-position accuracy.')
+        parser.add_argument('--test', action='store_true',
+                            help='Tests PCAViz to make sure all components are functioning.')
 
         # Parse the arguments.
         args = parser.parse_args()
