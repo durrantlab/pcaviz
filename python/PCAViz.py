@@ -229,13 +229,12 @@ if __name__ == '__main__':
 
     # Stride or trim the trajectory as desired, this transfers the trajectory
     # to memory.
-    if params['stride'] > 1 or params['starting_frame'] > 0:
+    if params['stride'] > 1:  # or params['starting_frame'] > 0:
         sel = traj.select_atoms('all')
         analyze = AnalysisFromFunction(lambda ag: ag.positions.copy(), traj.atoms)
         coor = analyze.run().results
         traj = MDAnalysis.Merge(sel)
-        traj = traj.load_new(coor[params['starting_frame']::params['stride']],
-                             format=MemoryReader)
+        traj.load_new(coor[0::params['stride']], format=MemoryReader)
 
     # Calculate trajectory on principal components and retrieve PCA
     # information
