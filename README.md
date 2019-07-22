@@ -43,18 +43,7 @@ further compressed using algorithms such as GZIP.
 ### Examples of Use ###
 
 1. Create a compressed JSON file from a topology (1J8K_example.psf) and a
-   trajectory/coordinate (1J8K_example.dcd) file.
-1. First ordered list item
-
-   Second paragraph of first item.
-
-1. Another item
-
-
-sdfsdfsdfsdfsdfsdf
-
-   Moose
-
+   trajectory/coordinate (1J8K_example.dcd) file. <br>
    `python PCAViz.py --top_file examples/1J8K_example.psf --coor_file examples/1J8K_example.dcd`
 
 2. PDB files can also contain multiple frames. In this case, the same file
