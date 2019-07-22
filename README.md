@@ -1,21 +1,18 @@
-PCAViz
-======
+# PCAViz #
 
-Introduction
-------------
+## Introduction ##
 
 PCAViz is an open-source Python/JavaScript toolkit for sharing and visualizing
 MD trajectories via a web browser.
 
-PCAViz Compressor (Python)
---------------------------
+## PCAViz Compressor (Python) ##
 
 The PCAViz Compressor is a Python script that uses lossy compression (i.e.,
 principal component analysis and other strategies) to process trajectories.
 The compressor saves this data as a minified JSON file that can itself be
 further compressed using algorithms such as GZIP.
 
-Here is a description of the available user parameters:
+### Available User Parameters ###
 
 ```text
   -h, --help         show this help message and exit
@@ -43,7 +40,7 @@ Here is a description of the available user parameters:
   --test             Tests PCAViz to make sure all components are functioning.
 ```
 
-Here are some relevant examples of use:
+### Examples of Use ###
 
 1. Create a compressed JSON file from a topology (1J8K_example.psf) and a
    trajectory/coordinate (1J8K_example.dcd) file.
@@ -100,8 +97,7 @@ Here are some relevant examples of use:
 
 `python PCAViz.py --test`
 
-PCAViz Interpreter (JavaScript)
--------------------------------
+## PCAViz Interpreter (JavaScript) ##
 
 The PCAViz Interpreter is a JavaScript library that runs in users' browsers.
 It downloads a PCAViz JSON file and decompresses the trajectory so the atomic
@@ -233,8 +229,7 @@ molecular-visualization libraries.
 </html>
 ```
 
-PCAViz WordPress Plugin
------------------------
+## PCAViz WordPress Plugin ##
 
 To encourage use, an easy-to-install PCAViz-powered WordPress plugin enables
 "plug-and-play" trajectory visualization. The PCAViz download also provides
