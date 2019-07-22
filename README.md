@@ -250,10 +250,9 @@ Directory. Search for __XXXXX__. The
 site provides useful instructions detailing how to install plugins from their
 directory.
 
-You can also install the PCAViz WordPress plugin using the code in this
-repository's `pcaviz-wordpress/` directory. Either copy the
-`pcaviz-wordpress/` directory directly to your server's `wp-content/plugins/`
-directory
+You can also install the plugin using this repository's `pcaviz-wordpress/`
+directory. Either copy `pcaviz-wordpress/` directly to your server's
+`wp-content/plugins/` directory
 ([instructions](https://wordpress.org/support/article/managing-plugins/#manual-plugin-installation)),
 or create a ZIP file of the `pcaviz-wordpress/` directory and upload it via
 your WordPress admin screen
