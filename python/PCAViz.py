@@ -199,7 +199,7 @@ python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_
 
 python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --output_dir "my_dir"
 
-8. For debugging purposoes, PCAViz also includes an option to test whether the
+8. For debugging purposes, PCAViz also includes an option to test whether the
    code is fully functional.
 
 python PCAViz.py --test
