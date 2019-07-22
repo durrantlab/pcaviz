@@ -84,8 +84,7 @@ further compressed using algorithms such as GZIP.
    where the coordinate file is located. You can specify a different output
    directory if needed. The directory will be created if it doesn't exist.
    <br>
-   `python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file
-   examples/1J8K_example.pdb --output_dir "my_dir"`
+   `python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --output_dir "my_dir"`
 
 8. For debugging purposes, PCAViz also includes an option to test whether the
    code is fully functional. <br>
