@@ -14,7 +14,7 @@ further compressed using algorithms such as GZIP.
 
 ### Location ###
 
-This GIT repository: `python/`
+This Git repository: `python/`
 
 ### Available User Parameters ###
 
@@ -103,7 +103,7 @@ libraries (e.g., 3DMol.js, NGL Viewer, PV).
 
 ### Location ###
 
-This GIT repository: `javascript/`
+This Git repository: `javascript/`
 
 ### Examples of Use ###
 
@@ -237,3 +237,15 @@ molecular-visualization libraries.
 To encourage use, an easy-to-install PCAViz-powered WordPress plugin enables
 "plug-and-play" trajectory visualization. The PCAViz download also provides
 examples showing how to use PCAViz in any webpage.
+
+### Location ###
+
+This Git repository: `wordpress/`
+
+### Installation ###
+
+You can install the PCAViz WordPress plugin via the official WordPress Plugin
+Directory. Search for __XXXXX__. The
+[wordpress.org](https://wordpress.org/support/article/managing-plugins/#automatic-plugin-installation)
+site provides useful instructions detailing how to install plugins from their
+directory.
