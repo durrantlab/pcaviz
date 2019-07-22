@@ -12,6 +12,10 @@ principal component analysis and other strategies) to process trajectories.
 The compressor saves this data as a minified JSON file that can itself be
 further compressed using algorithms such as GZIP.
 
+### Location ###
+
+This GIT repository: `python/`
+
 ### Available User Parameters ###
 
 ```text
@@ -96,6 +100,12 @@ The PCAViz Interpreter is a JavaScript library that runs in users' browsers.
 It downloads a PCAViz JSON file and decompresses the trajectory so the atomic
 coordinates can be fed to popular WebGL-based molecular-visualization
 libraries (e.g., 3DMol.js, NGL Viewer, PV).
+
+### Location ###
+
+This GIT repository: `javascript/`
+
+### Examples of Use ###
 
 The below example shows how to incorporate PCAViz into an HTML page, together
 with the molecular-visualization library
