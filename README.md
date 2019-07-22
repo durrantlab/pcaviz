@@ -47,22 +47,19 @@ further compressed using algorithms such as GZIP.
    `python PCAViz.py --top_file examples/1J8K_example.psf --coor_file examples/1J8K_example.dcd`
 
 2. PDB files can also contain multiple frames. In this case, the same file
-   serves as the topology and trajectory file.
-
+   serves as the topology and trajectory file. <br>
    `python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb`
 
 3. By default, PCAViz includes only the backbone atoms in the output. These
    atoms should be enough for cartoon-style visualization. But you can select
    your own atoms to include in the output. See https://goo.gl/kVeQuN to learn
-   how to construct an atom-selection string.
-
-`python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --selection "name *"`
+   how to construct an atom-selection string. <br>
+   `python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --selection "name *"`
 
 4. Striding the trajectory frames can reduce file sizes. PCAViz will
    interpolate between the remaining frames to fill in the frames that are
-   missing. Here we keep only every other frame:
-
-`python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --stride 2`
+   missing. Here we keep only every other frame: <br>
+   `python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --stride 2`
 
 5. PCAViz allows users to control the compression settings. Two settings are
    available. First, the user can specify how much of the cumulative variance
@@ -72,29 +69,27 @@ further compressed using algorithms such as GZIP.
    principal-component coefficients). For example, here we tell PCAViz to
    produce a trajectory that accounts for 80% of the variance, and to round all
    numbers in the output JSON file to the nearest hundredth (two decimal
-   places):
-
-`python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --cum_var 0.8 --precision 2`
+   places): <br>
+   `python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --cum_var 0.8 --precision 2`
 
 6. To find the ideal --cum_var and --precision parameters, you may wish to
    check how closely the PCAViz-compressed trajectory matches the original
    trajectory. You can instruct PCAViz to output a CSV file that provides a
    frame-by-frame RMSD comparison between the two trajectories. This option
    also outputs an XYZ trajectory file that you can visually compare to the
-   original.
-
-`python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --check_accuracy`
+   original. <br>
+   `python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --check_accuracy`
 
 7. By default, PCAViz saves the compressed JSON file to the same directory
    where the coordinate file is located. You can specify a different output
    directory if needed. The directory will be created if it doesn't exist.
-
-`python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --output_dir "my_dir"`
+   <br>
+   `python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file
+   examples/1J8K_example.pdb --output_dir "my_dir"`
 
 8. For debugging purposes, PCAViz also includes an option to test whether the
-   code is fully functional.
-
-`python PCAViz.py --test`
+   code is fully functional. <br>
+   `python PCAViz.py --test`
 
 ## PCAViz Interpreter (JavaScript) ##
 
