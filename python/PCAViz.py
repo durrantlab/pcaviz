@@ -138,50 +138,116 @@ def get_params():
             params = json.load(param_file)
     else:
         # Otherwise parse the parameters from the system arguments.
-        parser = argparse.ArgumentParser(description='Compress an MD trajectory, saving the output to a JSON file.')
+        # parser = argparse.ArgumentParser(description='Compress an MD trajectory, saving the output to a JSON file.')
+
+        PARSER = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="""
+PCAViz is an open-source Python/JavaScript toolkit for sharing and visualizing
+MD trajectories via a web browser. This Python script, called the PCAViz
+Compressor, compresses an MD trajectory and saves the output to a JSON file.""",
+            epilog="""
+EXAMPLES OF USE:
+
+1. Create a compressed JSON file from a topology (1J8K_example.psf) and a
+   trajectory/coordinate (1J8K_example.dcd) file.
+
+python PCAViz.py --top_file examples/1J8K_example.psf --coor_file examples/1J8K_example.dcd
+
+2. PDB files can also contain multiple frames. In this case, the same file
+   serves as the topology and trajectory file.
+
+python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb
+
+3. By default, PCAViz includes only the backbone atoms in the output. These
+   atoms should be enough for cartoon-style visualization. But you can select
+   your own atoms to include in the output. See https://goo.gl/kVeQuN to learn
+   how to construct an atom-selection string.
+
+python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --selection "name *"
+
+4. Striding the trajectory frames can reduce file sizes. PCAViz will
+   interpolate between the remaining frames to fill in the frames that are
+   missing. Here we keep only every other frame:
+
+python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --stride 2
+
+5. PCAViz allows users to control the compression settings. Two settings are
+   available. First, the user can specify how much of the cumulative variance
+   should be explained by the principal components. PCAViz will pick the
+   number of components required to meet that goal. Second, the user can
+   specify how precisely PCAViz should represent numeric values (e.g.,
+   principal-component coefficients). For example, here we tell PCAViz to
+   produce a trajectory that accounts for 80% of the variance, and to round all
+   numbers in the output JSON file to the nearest hundredth (two decimal
+   places):
+
+python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --cum_var 0.8 --precision 2
+
+6. To find the ideal --cum_var and --precision parameters, you may wish to
+   check how closely the PCAViz-compressed trajectory matches the original
+   trajectory. You can instruct PCAViz to output a CSV file that provides a
+   frame-by-frame RMSD comparison between the two trajectories. This option
+   also outputs an XYZ trajectory file that you can visually compare to the
+   original.
+
+python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --check_accuracy
+
+7. By default, PCAViz saves the compressed JSON file to the same directory
+   where the coordinate file is located. You can specify a different output
+   directory if needed. The directory will be created if it doesn't exist.
+
+python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --output_dir "my_dir"
+
+8. For debugging purposoes, PCAViz also includes an option to test whether the
+   code is fully functional.
+
+python PCAViz.py --test
+
+""")
 
         # First get all parameters.
-        parser.add_argument('--top_file', metavar='t', type=str, nargs="?",
+        PARSER.add_argument('--top_file', metavar='t', type=str, nargs="?",
                             help='The topology filename (e.g., psf).')
-        parser.add_argument('--coor_file', metavar='c', type=str, nargs="?",
-                            help='The coordinate (trajectory)' +\
-                                 ' filename (e.g., dcd).')
-        parser.add_argument('--selection', metavar='s', type=str, nargs="?",
+        PARSER.add_argument('--coor_file', metavar='c', type=str, nargs="?",
+                            help='The coordinate (trajectory) ' +\
+                                 'filename (e.g., dcd).')
+        PARSER.add_argument('--selection', metavar='s', type=str, nargs="?",
                             default="name CA C N O",
                             help='Which atoms to save to the JSON output ' +\
                                  'file (default: "name CA C N O"). See ' +\
                                  'https://goo.gl/kVeQuN to learn ' +\
                                  'how to construct an atom selection string.')
-        parser.add_argument('--output_dir', metavar='od', type=str, nargs="?",
+        PARSER.add_argument('--output_dir', metavar='od', type=str, nargs="?",
                             default=None,
                             help='The directory where output files should be saved. ' +\
                                  'The directory will be created if it does not exist. ' +\
                                  '(default: the directory where the coordinate file is located).')
-        parser.add_argument('--stride', metavar='ns', type=int,
+        PARSER.add_argument('--stride', metavar='ns', type=int,
                             nargs="?", default=1,
                             help='How many frames to stride. For example, stride = 2 ' +\
                                  'means every other frame will be saved, and stride = 3 ' +\
                                  'means every third frame will be saved. (default: 1, no ' +\
                                  'stride).')
-        parser.add_argument('--cum_var', metavar='var', type=float,
+        PARSER.add_argument('--cum_var', metavar='var', type=float,
                             nargs='?', default=0.90,
                             help='The target cumulative variance, as a float. PCAViz will ' +\
                                  'use the minimum number of principal components required to ' +\
                                  'capture at least this variance (default: 0.90).')
-        parser.add_argument('--precision', metavar='p', type=int,
+        PARSER.add_argument('--precision', metavar='p', type=int,
                             nargs='?', default=2,
                             help='The number of decimal places to retain when rounding PCA ' +\
                                  'vectors, coefficients, and atomic coordinates ' +\
                                  '(default: 2, meaning round to the hundredths).')
-        parser.add_argument('--check_accuracy', action='store_true',
+        PARSER.add_argument('--check_accuracy', action='store_true',
                             help='Create a csv file containing the frame-to-frame RMSDs between ' +\
                                  'original- and decompressed-trajectory frames. Useful for testing ' +\
                                  'the impact of different settings on atom-position accuracy.')
-        parser.add_argument('--test', action='store_true',
+        PARSER.add_argument('--test', action='store_true',
                             help='Tests PCAViz to make sure all components are functioning.')
 
         # Parse the arguments.
-        args = parser.parse_args()
+        args = PARSER.parse_args()
 
         # Ensure output_dir is formatted correctly.
         output_dir = args.output_dir
@@ -407,8 +473,8 @@ class TestsNameSpace:
             sys.exit(0)
         os.mkdir(output_dir)
         params = {
-            "top_file": "1J8K_example.pdb",
-            "coor_file": "1J8K_example.pdb",
+            "top_file": "examples/1J8K_example.pdb",
+            "coor_file": "examples/1J8K_example.pdb",
             "selection": "name C N CA",
             "output_dir": output_dir,
             "stride": 2,
