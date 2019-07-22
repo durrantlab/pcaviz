@@ -14,7 +14,7 @@ further compressed using algorithms such as GZIP.
 
 ### Location ###
 
-This Git repository: `python/`
+This Git repository: `pcaviz-compressor-python/`
 
 ### Available User Parameters ###
 
@@ -103,15 +103,16 @@ libraries (e.g., 3DMol.js, NGL Viewer, PV).
 
 ### Location ###
 
-This Git repository: `javascript/`
+This Git repository: `pcaviz-interpreter-javascript/`
 
 ### Examples of Use ###
 
 The below example shows how to incorporate PCAViz into an HTML page, together
 with the molecular-visualization library
-[3DMol.js](https://3dmol.csb.pitt.edu). The `javascript/examples/` directory
-includes additional HTML examples showing how to use PCAViz with other
-molecular-visualization libraries.
+[3DMol.js](https://3dmol.csb.pitt.edu). The
+`pcaviz-interpreter-javascript/examples/` directory includes additional HTML
+examples showing how to use PCAViz with other molecular-visualization
+libraries.
 
 ```html
 <!DOCTYPE html>
