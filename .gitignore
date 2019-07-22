@@ -6,3 +6,4 @@ test_files/*compressed.json*
 .DS_Store
 old*
 compress_decompress_test
+*.tmp.sh
