@@ -5,9 +5,9 @@
     </head>
     <body>
         <style>
-            /* The below position the viewer div and controls div relative to
+            /* The below position the viewer div and pcaviz-controls div relative to
             each other. */
-            #vis-and-controls {
+            #pcaviz-vis-and-controls {
                 width: 60%;
                 height: 400px;
                 position: relative;
@@ -16,12 +16,12 @@
                 flex-grow: 1;
             }
 
-            #viscontainer {
+            #pcaviz-viscontainer {
                 width: 100%;
                 height: 100%;
             }
 
-            #controls {
+            #pcaviz-controls {
                 min-height: 40px;
                 height: 40px;
             }
@@ -34,11 +34,11 @@
 
         <h1>NGLViewer</h1>
 
-        <!-- Create containers for both NGLViewer and the trajectory controls
+        <!-- Create containers for both NGLViewer and the trajectory pcaviz-controls
         (e.g., play button) -->
-        <div id="vis-and-controls">
-            <div id="viscontainer"></div>
-            <div id="controls"></div>
+        <div id="pcaviz-vis-and-controls">
+            <div id="pcaviz-viscontainer"></div>
+            <div id="pcaviz-controls"></div>
         </div>
 
         <!-- Load the javascript files -->
@@ -48,7 +48,7 @@
 
         <script>
             // Setup NGLViewer
-            var viewer = new NGL.Stage('viscontainer');
+            var viewer = new NGL.Stage('pcaviz-viscontainer');
             viewer.viewer.setBackground( 0xFFFFFF );
 
             // Tell PCAViz that you want it to interface with the NGLViewer
@@ -78,8 +78,8 @@
                 loop: true,
 
                 // The HTML ID of the DOM element where PCAViz should add
-                // playback controls (e.g., the play button).
-                playerControlsID: "controls",
+                // playback pcaviz-controls (e.g., the play button).
+                playerControlsID: "pcaviz-controls",
 
                 // The number of frames PCAViz should consider when smoothing
                 // the trajectory motions via a windowed average.

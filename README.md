@@ -121,9 +121,9 @@ molecular-visualization libraries.
     </head>
     <body>
         <style>
-            /* The below position the viewer div and controls div relative to
+            /* The below position the viewer div and pcaviz-controls div relative to
             each other. */
-            #vis-and-controls {
+            #pcaviz-vis-and-controls {
                 width: 60%;
                 height: 400px;
                 position: relative;
@@ -132,12 +132,12 @@ molecular-visualization libraries.
                 flex-grow: 1;
             }
 
-            #viscontainer {
+            #pcaviz-viscontainer {
                 width: 100%;
                 height: 100%;
             }
 
-            #controls {
+            #pcaviz-controls {
                 min-height: 40px;
                 height: 40px;
             }
@@ -150,11 +150,11 @@ molecular-visualization libraries.
 
         <h1>3DMol.js</h1>
 
-        <!-- Create containers for both 3DMol.js and the trajectory controls
+        <!-- Create containers for both 3DMol.js and the trajectory pcaviz-controls
         (e.g., play button) -->
-        <div id="vis-and-controls">
-            <div id="viscontainer"></div>
-            <div id="controls"></div>
+        <div id="pcaviz-vis-and-controls">
+            <div id="pcaviz-viscontainer"></div>
+            <div id="pcaviz-controls"></div>
         </div>
 
         <!-- Load the javascript files -->
@@ -164,7 +164,7 @@ molecular-visualization libraries.
 
         <script>
             // Setup 3DMol.js
-            let element = jQuery('#viscontainer');
+            let element = jQuery('#pcaviz-viscontainer');
             let config = {backgroundColor: 'white'};
             let viewer = $3Dmol.createViewer(element, config);
 
@@ -198,8 +198,8 @@ molecular-visualization libraries.
                 loop: true,
 
                 // The HTML ID of the DOM element where PCAViz should add
-                // playback controls (e.g., the play button).
-                playerControlsID: "controls",
+                // playback pcaviz-controls (e.g., the play button).
+                playerControlsID: "pcaviz-controls",
 
                 // The number of frames PCAViz should consider when smoothing
                 // the trajectory motions via a windowed average.
@@ -257,3 +257,28 @@ directory. Either copy `pcaviz-wordpress/` directly to your server's
 or create a ZIP file of the `pcaviz-wordpress/` directory and upload it via
 your WordPress admin screen
 ([instructions](https://wordpress.org/support/article/managing-plugins/#manual-upload-via-wordpress-admin)).
+
+### Examples of Use ###
+
+The PCAViz WordPress Plugin uses shortcodes that can be inserted into any
+WordPress post or page.
+
+1. If you use the plugin without any attributes, it will allow your site
+   visitors to select from any of the compressed JSON files you've uploaded to
+   your WordPress media library. Note that these files must end in
+   `.compressed.json` to be recognized. <br>
+   `[pcaviz]`
+2. If you want to show your site visitors a specific simulation present in
+   your media library, simplify specify the name of the simulation. PCAViz
+   will search through your media library and will choose the first JSON file
+   ending in `.compressed.json` that includes your specified text in its
+   title, URL, or file name. <br>
+   `[pcaviz file="larp1"]`
+3. You can explicitly specify the height and width of the viewer, in pixels.
+   <br>
+   `[pcaviz height=150 width=150]`
+4. It is also possible to align the viewer to the left, center, or right, and
+   to optionally add a caption.<br>
+   `[pcaviz align="right" caption="My molecule in motion!"]`
+5. You may also hide the playback buttons. <br>
+   `[pcaviz playback_buttons="false"]`

@@ -18,7 +18,7 @@ interface Params {
     "loadPDBTxt"?: any;           // Used if generic interface
     "updateAtomPositions"?: any;  // Used if generic interface
     "render"?: any;               // Used if generic interface
-    "playerControlsID"?: string;  // Add player controls to div with this ID.
+    "playerControlsID"?: string;  // Add player pcaviz-controls to div with this ID.
 }
 
 // (<any>window).requestAnimationFrame;
@@ -111,7 +111,7 @@ namespace PCAVizNameSpace {
                 "caching": "none",
                 "cacheModeNum": 0,  // corresponds to caching none.
                 "windowAverageSize": 1,
-                "playerControlsID": "",  // Player controls by default.
+                "playerControlsID": "",  // Player pcaviz-controls by default.
                 "parent": this,
                 "loadPDBTxt": (pdbTxt: string, viewer?: any, pcaViz?: any) => {
                     throw new Error(
@@ -1157,7 +1157,7 @@ namespace PCAVizNameSpace {
                 // Add the content to that div.
                 let randomID = "id " + Math.random().toString().replace(/\./g, "");
                 controllerDiv.innerHTML = `
-                    <div class="pcaviz-controls-container" style="display: flex; flex-direction: row;">
+                    <div class="pcaviz-pcaviz-controls-container" style="display: flex; flex-direction: row;">
                         <div class="pcaviz-button-container" style="flex: none;">
                             <button id="${randomID}-play" class="pcaviz-play pcaviz-button" style="height: 100%;">
                                 <img src="${this._images.play}" />

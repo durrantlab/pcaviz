@@ -1,18 +1,18 @@
-let element = jQuery('#viscontainer');
+let element = jQuery('#pcaviz-viscontainer');
 let config = {backgroundColor: 'white'};
 let viewer = $3Dmol.createViewer(element, config);
 
 // Run sims in the browsers
-function makeBrowserSim(viewer, viewerType,  datafile) {
+function makePCAViz(viewer, viewerType,  datafile) {
     element.show()
-    let pcaViz = new BrowserSim({
+    let pcaViz = new PCAViz({
         viewer: viewer,
         viewerType: viewerType,
         visStyle: {cartoon:{}, stick:{radius:.5,colorscheme:'Jmol'}},
         durationInMilliseconds: 10000,
         updateFreqInMilliseconds: 16.67,  // 60 fps
         loop: true,
-        playerControlsID: document.getElementById('controls') ? 'controls' : element,
+        playerControlsID: document.getElementById('pcaviz-controls') ? 'pcaviz-controls' : element,
         windowAverageSize: 1,
     });
 

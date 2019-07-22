@@ -27,7 +27,7 @@
  */
 function pcaviz_plugin_activation() {
     $notices = get_option('pcaviz_plugin_deferred_admin_notices', array());
-    $notices[] = "<b>Please visit the PCAViz <a href='/wp-admin/options-general.php?page=durrant'>".
+    $notices[] = "<b>Please visit the PCAViz <a href='/wp-admin/options-general.php?page=pcaviz'>".
     "settings page</a> to enable Google-analytics tracking.</b> Allowing us "
     ."to collect and report minimal data on PCAViz usage will improve our "
     ."chances of getting grants to fund our ongoing work. Not to worry. We "
@@ -68,8 +68,8 @@ add_filter( 'upload_mimes', 'my_myme_types' );
 wp_register_script('3Dmol-min', plugin_dir_url(__FILE__) . 'assets/js/3Dmol-nojquery-min.js', array('jquery'));
 wp_enqueue_script('3Dmol-min');
 
-wp_register_script('BrowserSim.min', plugin_dir_url(__FILE__) . 'assets/js/BrowserSim.min.js');
-wp_enqueue_script('BrowserSim.min');
+wp_register_script('PCAViz.min', plugin_dir_url(__FILE__) . 'assets/js/PCAViz.min.js');
+wp_enqueue_script('PCAViz.min');
 wp_enqueue_script('jquery');
 wp_register_script('GoogleAnalytics', plugin_dir_url( __FILE__ ) . 'assets/js/googleanalytics.js');
 wp_enqueue_script('GoogleAnalytics');
@@ -90,37 +90,51 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     // Normalize attribute keys, lowercase.
     $atts = array_change_key_case((array)$atts, CASE_LOWER);
 
+    // We need a default width for 3dmoljs.
+    if (is_null($atts['width'])) {
+        $atts['width'] = 200;  // "200px";
+    }
+
+    // Good to set default height too.
+    if (is_null($atts['height'])) {
+        // Golden ratio
+        $atts['height'] = $atts['width'] / 1.61803398875;
+    }
+
+    // The content is wrapped in a .pcaviz-container div.
+    echo "<div style='width:$atts[width]px;' class='pcaviz-container wp-block-image";
+    if (!is_null($atts['align'])) {
+        echo " align$atts[align]";
+    }
+    echo "'>";
+
     // If the user agreed to let us collect statistics...
-    if(get_option('durrant_option_name') === 'checked'){
+    if(get_option('pcaviz_option_name') === 'checked'){
         echo "<script>ga('pcaviz.send', 'pageview');</script>";
     }
 
     // Add the required CSS styles.
-    wp_register_style('viscontainer', plugin_dir_url(__FILE__) . 'assets/css/viscontainer.css');
-    wp_enqueue_style('viscontainer');
+    wp_register_style('pcaviz-viscontainer', plugin_dir_url(__FILE__) . 'assets/css/viscontainer.css');
+    wp_enqueue_style('pcaviz-viscontainer');
 
     // If the height attribute was set by user, we overwrite the css setting.
     if(!is_null($atts['height'])) {
-        echo "<style>#vis-and-controls {height: $atts[height] !important;}</style>";
+        echo "<style>#pcaviz-vis-and-controls {height: $atts[height]px !important;}</style>";
     }
 
-    // If the width attribute was set by user ,we overwrite the css setting.
+    // If the width attribute was set by user, we overwrite the css setting.
     if(!is_null($atts['width'])) {
-        echo "<style>#vis-and-controls {width: $atts[width] !important;}</style>";
+        echo "<style>#pcaviz-vis-and-controls {width: $atts[width]px !important;}</style>";
     }
 
-    // The canvas is wrapped into "collapsable" div. There's a script bellow
+    // The canvas is wrapped into "pcaviz-collapsable" div. There's a script bellow
     // that toggles its visibility.
-    echo "<div id='collapsable' class='wp-block-image'";
-    if (!is_null($atts['align'])) {
-        echo " align=$atts[align]";
-    }
-    echo ">";
+    echo "    <div id='pcaviz-collapsable'>";
 
-    // Setup the playback controls.
-    echo "<div id='vis-and-controls'>
-              <div id='viscontainer'></div>
-              <div id='controls'";
+    // Setup the playback pcaviz-controls.
+    echo "    <div id='pcaviz-vis-and-controls'>";
+    echo "        <div id='pcaviz-viscontainer'></div>";
+    echo "        <div id='pcaviz-controls'";
 
     // Only display playback buttons if the user requested them in the shortcode.
     if ((!is_null($atts['playback_buttons'])) && ($atts['playback_buttons'] === 'false')) {
@@ -128,15 +142,15 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     }
     echo ">";
 
-    echo "</div>";  // #controls
-    echo "</div>";  // #vis-and-controls
+    echo "</div>";  // #pcaviz-controls
+    echo "</div>";  // #pcaviz-vis-and-controls
 
     // Add a caption if it's set.
     if(!is_null($atts['caption'])) {
         echo "<figcaption>$atts[caption]</figcaption>";
     }
 
-    echo "</div>";  // #collapsable
+    echo "</div>";  // #pcaviz-collapsable
 
     // Load the PCAViz javascript code.
     echo "<script type='text/javascript' src='"
@@ -154,28 +168,33 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     $query_jsons = new WP_Query( $query_json_args  );
     $jsons = array();
     foreach ($query_jsons->posts as $json) {
-        $jsons[] = array(
-            "url" => wp_get_attachment_url($json->ID),
-            "file_name" => $json->post_name,
-            "date_time" => $json->post_date
-        );
+        $url = wp_get_attachment_url($json->ID);
+        if (substr($url, -strlen(".compressed.json")) === ".compressed.json") {
+            // Filename ends with ".compressed.json"
+            $jsons[] = array(
+                "url" => $url,
+                "file_name" => $json->post_name,
+                "date_time" => $json->post_date,
+                "title" => $json->post_title
+            );
+        }
     }
 
-    // Add javascript for toggling the "collapsable" div.
+    // Add javascript for toggling the "pcaviz-collapsable" div.
     echo "<script>
-              jQuery('#collapsable').hide();
+              jQuery('#pcaviz-collapsable').hide();
               function togglevisibility() {
-                  jQuery('#collapsable').show();
+                  jQuery('#pcaviz-collapsable').show();
               }
           </script>";
 
     // If the user didn't include a 'file' attribute in the shortcode, display
     // a dropdown listing all JSON files from the media library.
     if (is_null($atts['file'])) {
-        echo "<select id='file-input' onchange='togglevisibility();makeBrowserSim(viewer, \"3DMOLJS\", this.options[this.selectedIndex].value)'>
+        echo "<select style='width:$atts[width]px' id='pca-file-input' onchange='togglevisibility();makePCAViz(viewer, \"3DMOLJS\", this.options[this.selectedIndex].value)'>
                   <option selected>Select file</option>";
         foreach ($jsons as $json){
-            echo "<option value=$json[url]>$json[file_name] | $json[date_time]</option>";
+            echo "<option value=$json[url]>$json[title] | $json[date_time]</option>";
         }
         echo '</select>';
     } else {
@@ -184,15 +203,27 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
         // library. Output javascript code to display that file once it is
         // found.
         foreach ($jsons as $json){
-            if (strpos($json[file_name], preg_replace('/\\.[^.\\s]{3,4}$/', '', $atts['file'])) !== false){
+            // if (strpos($json["file_name"], preg_replace('/\\.[^.\\s]{3,4}$/', '', $atts['file'])) !== false){
+                $file_to_test = strtolower($atts['file']);
+            if (
+                    (strpos(strtolower($json["file_name"]), preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_to_test)) !== false) |
+                    (strpos(strtolower($json["url"]), preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_to_test)) !== false) |
+                    (strpos(strtolower($json["title"]), preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_to_test)) !== false)
+                )
+                {
                 echo "<script>
                           togglevisibility();
-                          makeBrowserSim(viewer, \"3DMOLJS\", \"$json[url]\");
+                          makePCAViz(viewer, \"3DMOLJS\", \"$json[url]\");
                       </script>";
                 break;
             }
         }
     }
+
+    echo "</div>";  // .pcaviz-container
+
+    // Insert a div so you know when the plugin is done.
+    echo "<div class='end-pcaviz-container'></div>";
 
     // Return all the above code as a string.
     return ob_get_clean();
@@ -203,34 +234,28 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
  *
  * @return void
  */
-function durrant_options_page() { ?>
+function pcaviz_options_page() { ?>
     <div>
         <?php screen_icon(); ?>
         <h2>PCAviz Plugin Settings</h2>
         <form method="post" action="options.php">
-            <?php settings_fields( 'durrant_options_group' ); ?>
-            <h3>Please allow us to collect minimal data on PCAViz usage.</h3>
+            <?php settings_fields( 'pcaviz_options_group' ); ?>
+            <h3>Please allow us to collect limited data on PCAViz usage.</h3>
             <p>
                 As an academic group, our research depends on government grants.
                 Being able to cite usage statistics in reports and articles will
                 help us convince reviewers that our work is worth funding. <b>We
                 understand and respect your privacy and that of your
-                visitors.</b> Your detailed data will never be made public. We
+                visitors.</b> Your personal data will never be made public. We
                 will only use summarized, aggregate data in our reports.
             </p>
             <p>
                 Thank you! This helps us a lot!
             </p>
-            <table>
-                <tr valign="top">
-                    <th scope="row">
-                        <label for="durrant_option_name">Allow Analytics</label>
-                    </th>
-                    <td>
-                        <input type="checkbox" id="durrant_option_name" name="durrant_option_name" value="checked" <?php echo get_option('durrant_option_name'); ?>/>
-                    </td>
-                </tr>
-            </table>
+            <p>
+                <input type="checkbox" id="pcaviz_option_name" name="pcaviz_option_name" value="checked" <?php echo get_option('pcaviz_option_name'); ?>/>
+                Allow Analytics
+            </p>
             <?php  submit_button(); ?>
         </form>
     </div>
@@ -243,30 +268,30 @@ function durrant_options_page() { ?>
  *
  * @return void
  */
-function durrant_register_settings() {
-   add_option( 'durrant_option_name', 'true');
-   register_setting( 'durrant_options_group', 'durrant_option_name', 'durrant_callback' );
+function pcaviz_register_settings() {
+   add_option( 'pcaviz_option_name', 'true');
+   register_setting( 'pcaviz_options_group', 'pcaviz_option_name', 'pcaviz_callback' );
 }
-add_action( 'admin_init', 'durrant_register_settings' );
+add_action( 'admin_init', 'pcaviz_register_settings' );
 
 /**
  * Register the options page.
  *
  * @return void
  */
-function durrant_register_options_page() {
-  add_options_page('Page Title', 'PCAviz', 'manage_options', 'durrant', 'durrant_options_page');
+function pcaviz_register_options_page() {
+  add_options_page('Page Title', 'PCAviz', 'manage_options', 'pcaviz', 'pcaviz_options_page');
 }
-add_action('admin_menu', 'durrant_register_options_page');
+add_action('admin_menu', 'pcaviz_register_options_page');
 
 /**
  * Let wordpress know about our shortcode.
  *
  * @return void
  */
-function durrant_shortcodes_init() {
+function pcaviz_shortcodes_init() {
     add_shortcode( 'pcaviz', 'pcaviz_main' );
 }
-add_action('init', 'durrant_shortcodes_init');
+add_action('init', 'pcaviz_shortcodes_init');
 
 ?>
