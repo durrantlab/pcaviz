@@ -44,10 +44,12 @@ further compressed using algorithms such as GZIP.
 
 1. Create a compressed JSON file from a topology (1J8K_example.psf) and a
    trajectory/coordinate (1J8K_example.dcd) file.
+
    `python PCAViz.py --top_file examples/1J8K_example.psf --coor_file examples/1J8K_example.dcd`
 
 2. PDB files can also contain multiple frames. In this case, the same file
    serves as the topology and trajectory file.
+
    `python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb`
 
 3. By default, PCAViz includes only the backbone atoms in the output. These
