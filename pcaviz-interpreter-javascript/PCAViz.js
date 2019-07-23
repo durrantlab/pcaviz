@@ -1,10 +1,3 @@
-// (<any>window).requestAnimationFrame;
-// A namespace, but that survives closure compiler.
-// (function(b) {
-//     b.test = function() {
-//         alert("hi")
-//     }
-// })(window["TESTING"] || (window["TESTING"] = {}));
 // Put it all in a big namespace to avoid having all the classes be global.
 var PCAVizNameSpace;
 (function (PCAVizNameSpace) {
@@ -248,12 +241,14 @@ var PCAVizNameSpace;
             }
             return coors;
         };
+        /**
+         * Loads all frame data if the user has requested pre-caching.
+         * @returns void
+         */
         PCAViz.prototype.cacheAllFrameCoorsIfNeeded = function () {
-            // If the user has requested pre-caching, load all frames now.
             if (this._params["cacheModeNum"] === 2) {
                 this._cachedFrameCoors = {}; // Reset everything.
                 for (var frameIdx = 0; frameIdx < this._numFramesTotal; frameIdx++) {
-                    // console.log("Caching frame", frameIdx);
                     this.getFrameCoors(frameIdx);
                 }
             }
@@ -957,26 +952,7 @@ var PCAVizNameSpace;
             // SVGs of the play buttons.
             this._images = {
                 play: "data:image/svg+xml;charset=utf-8;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIGJhc2VQcm9maWxlPSJ0aW55IiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayINCng9IjBweCIgeT0iMHB4IiB3aWR0aD0iNDBweCIgaGVpZ2h0PSI0MHB4IiB2aWV3Qm94PSIwIDAgNDAgNDAiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPHBhdGggZmlsbD0iIzAxMDEwMSIgc3Ryb2tlPSIjMDEwMTAxIiBzdHJva2Utd2lkdGg9IjYuNjQ0OSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTcuMSwzNi40TDMyLjksMjBMNy4xLDMuNlYzNi40eiIvPg0KPC9zdmc+",
-                // play: `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                //     x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
-                //     <path fill="#010101" stroke="#010101" stroke-width="6.6449" stroke-linejoin="round" d="M7.1,36.4L32.9,20L7.1,3.6V36.4z"/>
-                //     </svg>`,
-                // stop: `data:image/svg+xml;charset=utf-8;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIGJhc2VQcm9maWxlPSJ0aW55IiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayINCng9IjBweCIgeT0iMHB4IiB3aWR0aD0iNDBweCIgaGVpZ2h0PSI0MHB4IiB2aWV3Qm94PSIwIDAgNDAgNDAiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPHBhdGggZmlsbD0iIzAxMDEwMSIgc3Ryb2tlPSIjMDEwMTAxIiBzdHJva2Utd2lkdGg9IjYuMyIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTTMuOSwzLjVoMzIuM2MwLjIsMCwwLjQsMC4xLDAuNCwwLjNsMCwwdjMyLjMNCmMwLDAuMi0wLjIsMC4zLTAuNCwwLjNsMCwwSDMuOWMtMC4yLDAtMC40LTAuMS0wLjQtMC4zbDAsMFYzLjhDMy41LDMuNywzLjcsMy41LDMuOSwzLjVMMy45LDMuNSIvPg0KPC9zdmc+`,
-                // stop: `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                //     x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
-                //     <path fill="#010101" stroke="#010101" stroke-width="6.3" stroke-linejoin="round" d="M3.9,3.5h32.3c0.2,0,0.4,0.1,0.4,0.3l0,0v32.3
-                //     c0,0.2-0.2,0.3-0.4,0.3l0,0H3.9c-0.2,0-0.4-0.1-0.4-0.3l0,0V3.8C3.5,3.7,3.7,3.5,3.9,3.5L3.9,3.5"/>
-                //     </svg>`,
                 pause: "data:image/svg+xml;charset=utf-8;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIGJhc2VQcm9maWxlPSJ0aW55IiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayINCng9IjBweCIgeT0iMHB4IiB3aWR0aD0iNDBweCIgaGVpZ2h0PSI0MHB4IiB2aWV3Qm94PSIwIDAgNDAgNDAiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQo8cGF0aCBmaWxsPSIjMDEwMTAxIiBzdHJva2U9IiMwMTAxMDEiIHN0cm9rZS13aWR0aD0iNi40MTM0IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBkPSJNMy43LDMuNUgxNWMwLjEsMCwwLjEsMC4xLDAuMSwwLjN2MzIuMw0KYzAsMC4yLTAuMSwwLjMtMC4xLDAuM0gzLjdjLTAuMSwwLTAuMS0wLjEtMC4xLTAuM1YzLjlDMy41LDMuNywzLjYsMy41LDMuNywzLjUiLz4NCjxwYXRoIGZpbGw9IiMwMTAxMDEiIHN0cm9rZT0iIzAxMDEwMSIgc3Ryb2tlLXdpZHRoPSI2LjQxMzQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGQ9Ik0yNSwzLjVoMTEuNGMwLjEsMCwwLjEsMC4xLDAuMSwwLjN2MzIuMw0KYzAsMC4yLTAuMSwwLjMtMC4xLDAuM0gyNWMtMC4xLDAtMC4xLTAuMS0wLjEtMC4zVjMuOUMyNC44LDMuNywyNC45LDMuNSwyNSwzLjUiLz4NCjwvZz4NCjwvc3ZnPg=="
-                // pause: `<svg version="1.2" baseProfile="tiny" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                //     x="0px" y="0px" width="40px" height="40px" viewBox="0 0 40 40" xml:space="preserve">
-                //     <g>
-                //     <path fill="#010101" stroke="#010101" stroke-width="6.4134" stroke-linejoin="round" d="M3.7,3.5H15c0.1,0,0.1,0.1,0.1,0.3v32.3
-                //     c0,0.2-0.1,0.3-0.1,0.3H3.7c-0.1,0-0.1-0.1-0.1-0.3V3.9C3.5,3.7,3.6,3.5,3.7,3.5"/>
-                //     <path fill="#010101" stroke="#010101" stroke-width="6.4134" stroke-linejoin="round" d="M25,3.5h11.4c0.1,0,0.1,0.1,0.1,0.3v32.3
-                //     c0,0.2-0.1,0.3-0.1,0.3H25c-0.1,0-0.1-0.1-0.1-0.3V3.9C24.8,3.7,24.9,3.5,25,3.5"/>
-                //     </g>
-                //     </svg>`
             };
             this._parent = parent;
             if (this._parent._params["playerControlsID"] !== "") {
@@ -1093,7 +1069,7 @@ var PCAVizNameSpace;
         jjQuery.getJSON = getJSON;
     })(jjQuery || (jjQuery = {}));
 })(PCAVizNameSpace || (PCAVizNameSpace = {}));
-// Leave here in case you want to use from nodejs in the future.
+// Leave the below here in case you want to use from nodejs in the future...
 // let runningUnderNodeJS = false;
 // try {
 //     window;
