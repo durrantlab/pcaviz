@@ -12,23 +12,26 @@ from MDAnalysis.coordinates.memory import MemoryReader
 import numpy as np
 from sklearn.decomposition import PCA
 
-class UtilsNameSpace:
-    def output_filename(self, description, ext, coor_file, output_dir=None):
-        """
-        This function generates an output filename of type ext.
 
-        The file is saved to output_dir if provided. Defaults to the coor_file's directory.
+class Utils:
+    """A class (namespace) that contains utiliity definitions."""
 
-        :param str description: A decription of what the file is.
+    @staticmethod
+    def output_filename(description, ext, coor_file, output_dir=None):
+        """This definition generates an output filename of type ext.
 
-        :param str ext: The file extension to attach to the output file.
-
-        :param str coor_file: The coordinate file being handled.
-
-        :param str output_dir: The directory to which the file should be saved.
-
-        :return: A path and filename ordered as output_dir/coor_name.description.ext
-        :rtype: :class:'str'
+        :param description: A decription of the file.
+        :type description:  str
+        :param ext:         The file extension to attach to the output file.
+        :type ext:          str
+        :param coor_file:   The coordinate file name being handled.
+        :type coor_file:    str
+        :param output_dir:  The directory to which the file should be saved,
+                            defaults to the coor_file's directory.
+        :type output_dir:   string, optional
+        :return:            A path and filename ordered as
+                            output_dir/coor_name.description.ext
+        :rtype: str
         """
 
         # If the description is present, add "." to the beginning.
@@ -49,17 +52,21 @@ class UtilsNameSpace:
         return filename
 
 
-    def load_traj(self, top_file, coor_file=None):
-        """
-        Loads an MDAnalysis Universe from topology and/or coordinate files. Requires MDAnalysis.
+    @staticmethod
+    def load_traj(top_file, coor_file=None):
+        """Loads an MDAnalysis Universe from topology and/or coordinate files.
+        Requires MDAnalysis.
 
-        :param str top_file: Filename of topology file to be used. If a dual function file is being used
-                            it must be passed through top_file.
-
-        :param str coor_file: Filename of coordinate file to be used. Defaults to None.
-
-        :return: The Mdanalysis Universe constructed from provided files, potentially aligned to its first frame.
-        :rtype: :class:'MDAnalysis.Universe'
+        :param top_file:  Filename of topology file to be used. If a dual
+                          function file is being used it must be passed through
+                          top_file.
+        :type top_file:   str
+        :param coor_file: Filename of coordinate file to be used. Defaults to
+                          top_file.
+        :type coor_file:  str, optional
+        :return:          The MDAnalysis Universe built from the provided
+                          files.
+        :rtype:           MDAnalysis.Universe
         """
 
         # Read in coordinate file and topology file as a universe.
@@ -73,27 +80,29 @@ class UtilsNameSpace:
         return traj
 
 
-    def compress_list(self, to_round, num_decimals, flatten=False):
-        """
-        This function compresses a list by rounding its elements to num_decimals places.
+    @staticmethod
+    def compress_list(to_round, precision, flatten=False):
+        """This definition compresses a list by rounding its elements. It then
+        converts the elements to integers and optionally flattens the output.
 
-        It then converts the elements to integers and flattens the output according to flatten.
-
-        :param array_like to_round: An array_like containing floats to be compressed.
-
-        :param int num_decimals: How many decimal places to round to.
-
-        :param bool flatten: If True, output list will be flattened. If False list will retain its structure. Defaults to False.
-
-        :return: A basic Python list of ints with shape identical to to_round, or flattened if flatten set to True.
-        :rtype: :class:'list'
+        :param to_round:  An array-like variable containing floats to be
+                          compressed.
+        :type to_round:   list
+        :param precision: How many decimal places to round to.
+        :type precision:  int
+        :param flatten:   If True, the output list will be flattened. If False
+                          list will retain its 2D structure. Defaults to False.
+        :type flatten:    bool, optional
+        :return:          A basic Python list of ints with shape identical to
+                          to_round, or flattened if flatten is set to True.
+        :rtype: list
         """
 
         # First round to specified number of decimal places.
-        rounded_list = np.around(to_round, decimals=num_decimals)
+        rounded_list = np.around(to_round, decimals=precision)
 
         # Prepare for int conversion by moving decimals.
-        multiplication_factor = 10 ** num_decimals
+        multiplication_factor = 10 ** precision
         rounded_list *= multiplication_factor
 
         # Convert to integers.
@@ -110,19 +119,368 @@ class UtilsNameSpace:
         # Return compressed list.
         return compressed_list
 
+
+class PCAFuncs:
+    """A class (namespace) that includes definitions related to PCA."""
+
+    @staticmethod
+    def compress_PCA(traj, selection, cum_var):
+        """This definition performs PCA analysis using the MDAnalysis PCA
+        analysis class. It saves the information necessary for expansion back
+        into a trajectory.
+
+        :param traj:      The universe containing the trajectory to be compressed.
+        :type traj:       MDAnalysis.Universe
+        :param selection: The atom selection to be included in the compression
+                          e.g. protein, name CA...
+        :type selection:  str
+        :param cum_var:   The amount of variance to be explained cumulatively
+                          by calculated components.
+        :type cum_var:    float
+        :return:          The principal component vectors.
+        :rtype:           ndarray
+        :returns:         The coordinates of the selected trajectory atoms
+                          projected onto the calculated components.
+        :rtype:           ndarray
+        :returns:         The coordinates of the average positions of the
+                          selected atoms in Cartesian space.
+        :rtype:           ndarray
+        :returns:         The first-frame coordinates of the selected
+                          trajectory atoms in Cartesian space.
+        :rtype:           ndarray
+        :returns:         The atom type and number of the selected atoms.
+        :rtype            list
+        :returns:         The residue number and name of the selected atoms.
+        :rtype            list
+        """
+
+        # Get the indices of the atoms that match the selection.
+        atom_group = traj.select_atoms(selection)
+        idx_of_selected_atoms = atom_group.indices
+
+        # Get the flattened coordinates of each frame.
+        coor_data = []
+        for frame in traj.trajectory:
+            coor_data.append(frame.positions[idx_of_selected_atoms].ravel())
+        coor_data = np.array(coor_data)
+
+        # Append coordinates to python list then use ravel to flatten coordinates without
+        # having to allocate new memory
+        # Turning coord list into numpy array because it reduces memory consumption
+        # You get a flatten numpy array containing the coordinates
+        pca = PCA(n_components=min(coor_data.shape))
+        pca.fit(coor_data)
+        pca_vectors = pca.components_
+
+        # Number of components should be equal to number of elements in coor_data array
+        # Number of principal components = 3xs the number of atoms
+        # pca.fit fits model to coordinate data
+        # PCA vectors contain principal axes in PCA space, show max variance in data
+
+        # Also get the coefficients for each frame.
+        coords_project_onto_pca_space = pca.transform(coor_data)
+
+        # coords_project_onto_pca_space applies PCA dimensionality reduction to coor_data
+
+        # Calculate how many components are required to cumulatively explain the
+        # desired variance.
+        var = pca.explained_variance_ratio_
+        cumulated_variance = np.array([np.sum(var[:i+1]) for i in range(var.size)])
+        idxs_of_above_cum_var = np.where(cumulated_variance >= cum_var)[0]
+
+        # var = % of variance explained by each of the selected components cum_var
+        # sums up the % of variance explained by the components
+
+        # If there are no components above threshold (because cum_var == 1.0),
+        # keep all components. If not, keep only the number required to account
+        # for the user-specified variance.
+        if idxs_of_above_cum_var.size == 0:
+            n_pcs = cumulated_variance.size
+        else:
+            n_pcs = idxs_of_above_cum_var[0] + 1
+
+        # Keep only the appropriate number of components and coefficients.
+        pca_vectors = pca_vectors[:n_pcs]
+        coords_project_onto_pca_space = coords_project_onto_pca_space[:,:n_pcs]
+
+        # Also calculate the mean structure.
+        coords_avg_atoms = pca.mean_
+
+        # Save the coordinates of the first structure too (so we can get the
+        # correct bonds in the browser).
+        coords_first_frame = coor_data[0]
+
+        # Only select atoms of interest.
+        atomgroup = traj.select_atoms(selection)
+        # data_json will contain residue/atom info for user selection
+        data_json = []
+
+        # Save atom information.
+        last_key = ""
+        for a in atomgroup:
+            at_name = a.name
+            res_name = a.resname
+            res_id = a.resid
+
+            # If statement will check to see if residue id is present if it's not
+            # present it will add the residue id, residue name, and the residue's
+            # atoms.
+            key = str(res_id) + res_name # Because list is not hashable.
+            if key != last_key:
+                data_json.append([int(res_id), res_name, at_name])
+                last_key = key
+            else:
+                data_json.append(at_name)
+
+        # Return only the information necessary for compression and expansion.
+        return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, \
+            coords_first_frame, data_json
+
+
+    @staticmethod
+    def expand_PCA(pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, precision):
+        """This definition decompresses a trajectory that was compressed with
+        the compress_PCA definition. It uses only the information necessary for
+        expansion back into Cartesian-space and returns a list of the
+        decompressed atomic coordinates.
+
+        :param pca_vectors:                   The principal components onto
+                                              which the trajectory has been
+                                              projected.
+        :type pca_vectors:                    list
+        :param coords_project_onto_pca_space: The projected trajectory
+                                              coordinates in PCA-space.
+        :type coords_project_onto_pca_space:  list
+        :param coords_avg_atoms:              The average atomic coordinates of
+                                              the original trajectory.
+        :type coords_avg_atoms:               list
+        :param precision:                     The number of decimal places
+                                              after the PCA vectors,
+                                              coefficients, and atomic
+                                              coordinates were rounded.
+        :type precision:                      int
+        :return:                              The decompressed trajectory. A
+                                              list containing ndarrays of the
+                                              atomic coordinates at each frame,
+                                              in the same format as an ordinary
+                                              MDAnalysis Universe
+                                              atom_selection.positions field.
+        :rtype: list
+        """
+
+        pca_vectors = np.true_divide(pca_vectors, (10**precision))
+        coords_project_onto_pca_space = np.true_divide(coords_project_onto_pca_space,
+                                                    (10**precision))
+        coords_avg_atoms = np.true_divide(coords_avg_atoms, (10**precision))
+
+
+        # Prepare list to hold expanded trajectory coordinates.
+        expanded_coordinates = []
+
+        # Construct each frame's coordinates one at a time.
+        for frame_num, frame_coefficients in enumerate(coords_project_onto_pca_space):
+
+            # Calculate flattened XYZ coordinate delta values.
+            XYZ_coor_delta = np.dot(frame_coefficients, pca_vectors)
+
+            # Add the average atomic positions.
+            XYZ_coor = XYZ_coor_delta + coords_avg_atoms
+
+            expanded_coordinates.append(np.reshape(XYZ_coor, (len(XYZ_coor) // 3, 3)))
+
+        # Return the expanded coordinates.
+        return expanded_coordinates
+
+
+    @staticmethod
+    def save_uncompressed_pdb(coors, atom_inf, output_filename):
+        """Saves an XYZ file of the uncompressed trajectory.
+
+        :param coors:           A list of numpy.array coordinates.
+        :type coors:            list
+        :param atom_inf:        The residue index, name, and atom name of each
+                                atom.
+        :type atom_inf:         list
+        :param output_filename: The filename of the output xyz file.
+        :type output_filename:  str
+        """
+
+        atom_inf2 = []
+        last_resindex = None
+        last_resname = None
+        for ai in atom_inf:
+            if type(ai) == str:
+                atom_inf2.append([last_resindex, last_resname, ai])
+            else:
+                atom_inf2.append(ai)
+                last_resindex = ai[0]
+                last_resname = ai[1]
+
+        with open(output_filename, "w") as f:
+            coor_len = len(coors[0])
+            for i, coor in enumerate(coors):
+                f.write(str(coor_len) + "\n")
+                f.write(" pcaviz\n")
+                for c, ai in zip(coor, atom_inf2):
+                    x, y, z = c
+                    residx, resname, atomname = ai
+                    f.write(atomname + " " + str(x) + " " + str(y) + " " + str(z) + "\n")
+
+class Tests:
+    """A class/namespace that contains definitions related to running PCACViz
+    in test mode."""
+
+    @staticmethod
+    def start():
+        """Initial preparation step required to run PCAViz in testing mode.
+
+        :return: The parameters to use for testing.
+        :rtype: dict
+        """
+
+        output_dir = "tmp_testing" + os.sep
+        print("Running in test mode. All other parameters will be ignored.")
+        if os.path.exists(output_dir):
+            print("Directory already exists: " + output_dir + "! Delete this directory before running the test.")
+            sys.exit(0)
+        os.mkdir(output_dir)
+        params = {
+            "top_file": "examples/1J8K_example.pdb",
+            "coor_file": "examples/1J8K_example.pdb",
+            "selection": "name C N CA",
+            "output_dir": output_dir,
+            "stride": 2,
+            "cum_var": 0.8,
+            "precision": 1,
+            "check_accuracy": True,
+            "test": True
+        }
+        return params
+
+
+    @staticmethod
+    def finish():
+        """Runs after tests are complete. Checks if output values are as
+        expected, cleans up temporary files, etc."""
+
+        print("")
+        print("Checking if calculated mean RMSD is 0.53...")
+        mean = [l for l in open("tmp_testing" + os.sep + "1J8K_example.starting_vs_expanded_RMSD.csv")
+                if "mean" in l][0].split(",")[1][:4]
+        if (mean == "0.53"):
+            print("\tPassed!")
+        else:
+            print("\tFailed!")
+            shutil.rmtree('tmp_testing')
+            sys.exit(0)
+
+        PCA_inf = json.load(open("tmp_testing" + os.sep + "1J8K_example.compressed.json"))
+        print("Checking 846 coordinates (282 atoms * 3)...")
+        if len(PCA_inf["coors"]) == 846 and len(PCA_inf["first_coors"]) == 846:
+            print("\tPassed!")
+        else:
+            print("\tFailed!")
+            shutil.rmtree('tmp_testing')
+            sys.exit(0)
+
+        print("Checking 3 frames (5 original frames, stride 2)...")
+        if len(PCA_inf["coeffs"]) == 3:
+            print("\tPassed!")
+        else:
+            print("\tFailed!")
+            shutil.rmtree('tmp_testing')
+            sys.exit(0)
+
+        print("Checking 2 principal components...")
+        if len(PCA_inf["vecs"]) == 2:
+            print("\tPassed!")
+        else:
+            print("\tFailed!")
+            shutil.rmtree('tmp_testing')
+            sys.exit(0)
+
+        shutil.rmtree('tmp_testing')
+
+    @staticmethod
+    def check_accuracy(params, vect_components, PCA_coeff, coords_avg_atoms,
+                       precision, coor_file, data_json_info, traj):
+        """Checks the accuracy of a PCAViz-processed trajectory.
+
+        :param params:           The user parameters.
+        :type params:            dict
+        :param vect_components:  The PCAViz-generated principal components.
+        :type vect_components:   list
+        :param PCA_coeff:        The PCA coefficients for each frame.
+        :type PCA_coeff:         list
+        :param coords_avg_atoms: The average atomic coordinates of the
+                                 trajectory.
+        :type coords_avg_atoms:  list
+        :param precision:        The number of decimal places after the PCA
+                                 vectors, coefficients, and atomic coordinates
+                                 were rounded.
+        :type precision:         int
+        :param coor_file:        The coordinate filename.
+        :type coor_file:         str
+        :param data_json_info:   The residue index, name, and atom name of each
+                                 atom.
+        :type data_json_info:    dict
+        :param traj:             The original trajectory.
+        :type traj:              MDAnalysis.Universe
+        """
+
+        # Prepare list to hold RMSD values.
+        RMSD_lst = []
+
+        # Calculate expanded coordinates.
+        expanded_trajectory = PCAFuncs.expand_PCA(vect_components, PCA_coeff,
+                                                  coords_avg_atoms, precision)
+
+        xyz_filename = Utils.output_filename('uncompressed',
+                                                'xyz',
+                                                coor_file=coor_file,
+                                                output_dir=params['output_dir'])
+        PCAFuncs.save_uncompressed_pdb(expanded_trajectory, data_json_info, xyz_filename)
+
+        # Calculate RMSD value of each frame between original and expanded trajectory.
+        for frame_id, traj_fram in enumerate(traj.trajectory):
+            original_positions = traj.select_atoms(params['selection']).positions
+            RMSD_lst.append(rms.rmsd(original_positions, expanded_trajectory[frame_id]))
+
+        # Create a list for outputting frame number.
+        frame_numbers = list(range(len(RMSD_lst)))
+        frame_numbers.append('mean')
+        frame_numbers.append('standard deviation')
+
+        # Also output the mean and standard deviation.
+        mean_RMSD = np.mean(RMSD_lst)
+        std_RMSD = np.std(RMSD_lst)
+        RMSD_lst.extend([mean_RMSD, std_RMSD])
+        print("The mean RMSD between the original and expanded trajectory is: " + \
+                str(mean_RMSD))
+        print("The standard deviation of the RMSD between the original and " + \
+                "expanded trajectory is: " + str(std_RMSD))
+
+        # Save a table containing results.
+        tbl_flnm = Utils.output_filename('starting_vs_expanded_RMSD',
+                                    'csv',
+                                    coor_file=coor_file,
+                                    output_dir=params['output_dir'])
+        with open(tbl_flnm, 'w') as tf:
+            table_writer = csv.writer(tf)
+            table_writer.writerows(zip(frame_numbers, RMSD_lst))
+
+
 def get_params():
-    """
-    This function handles all user input directly using Python's built in argparse functionality.
+    """This definition handles user command-line input. If the first argument
+    is a json file, it will read the parameters from that file. Otherwise the
+    parameters must be specified from the command line. Please use the -h flag
+    for more information on available parameters.
 
-    It directly accesses the system arguments when PCA.py is called. If the first argument is a json file
-    it will read the parameters from that file, otherwise they must be specified directly.
-    Please use the -h flag for more information on available parameters.
-
-    :return: A dictionary containing all the user provided parameters as values associated with their respective keys.
-    :rtype: :class:'dict'
+    :return: A dictionary containing all the user-provided parameters as values
+             associated with their respective keys.
+    :rtype:  dict
 
     ::
-
         >>> python PCA.py -h
     """
 
@@ -263,317 +621,9 @@ python PCAViz.py --test
     # Return the dictionary of parameters.
     return params
 
-class PCANameSpace:
-    # Calculate PCA of the first trajectory using MDAnalysis' class.
-    def compress_PCA(self, traj, selection, cum_var):
-        """
-        This function performs PCA analysis using the MDAnalysis PCA analysis
-        class.
 
-        It obtains the information necessary for expansion back into a trajectory.
-
-        :param MDAnalysis.Universe traj: The universe containing the trajectory to
-                                        be compressed.
-
-        :param str selection: The atom selection to be included in the compression
-                            e.g. protein, name CA...
-
-        :param float cum_var: The amount of variance to be explained cumulatively
-                            by calculated components.
-
-        :returns: The principal component vectors.
-        :rtype: :class:'ndarray'
-
-        :returns: The coordinates of selection in traj projected onto the
-                calculated components.
-        :rtype: :class:'ndarray'
-
-        :returns: The coordinates of the average atomic positions of selection in
-                traj in XYZ space.
-        :rtype: :class:'ndarray'
-
-        :returns: The first frame coordinates of selection in traj in XYZ space.
-        :rtype: :class:'ndarray
-
-        :returns: The atom type and number of the selection in traj.
-        :rtype :class:'list'
-
-        :returns: The residue number and name of the selection in traj.
-        :rtype :class:'list'
-        """
-
-        # Get the indices of the atoms that match the selection.
-        atom_group = traj.select_atoms(selection)
-        idx_of_selected_atoms = atom_group.indices
-
-        # Get the flattened coordinates of each frame.
-        coor_data = []
-        for frame in traj.trajectory:
-            coor_data.append(frame.positions[idx_of_selected_atoms].ravel())
-        coor_data = np.array(coor_data)
-
-        # Append coordinates to python list then use ravel to flatten coordinates without
-        # having to allocate new memory
-        # Turning coord list into numpy array because it reduces memory consumption
-        # You get a flatten numpy array containing the coordinates
-        pca = PCA(n_components=min(coor_data.shape))
-        pca.fit(coor_data)
-        pca_vectors = pca.components_
-
-        # Number of components should be equal to number of elements in coor_data array
-        # Number of principal components = 3xs the number of atoms
-        # pca.fit fits model to coordinate data
-        # PCA vectors contain principal axes in PCA space, show max variance in data
-
-        # Also get the coefficients for each frame.
-        coords_project_onto_pca_space = pca.transform(coor_data)
-
-        # coords_project_onto_pca_space applies PCA dimensionality reduction to coor_data
-
-        # Calculate how many components are required to cumulatively explain the
-        # desired variance.
-        var = pca.explained_variance_ratio_
-        cumulated_variance = np.array([np.sum(var[:i+1]) for i in range(var.size)])
-        idxs_of_above_cum_var = np.where(cumulated_variance >= cum_var)[0]
-
-        # var = % of variance explained by each of the selected components cum_var
-        # sums up the % of variance explained by the components
-
-        # If there are no components above threshold (because cum_var == 1.0),
-        # keep all components. If not, keep only the number required to account
-        # for the user-specified variance.
-        if idxs_of_above_cum_var.size == 0:
-            n_pcs = cumulated_variance.size
-        else:
-            n_pcs = idxs_of_above_cum_var[0] + 1
-
-        # Keep only the appropriate number of components and coefficients.
-        pca_vectors = pca_vectors[:n_pcs]
-        coords_project_onto_pca_space = coords_project_onto_pca_space[:,:n_pcs]
-
-        # Also calculate the mean structure.
-        coords_avg_atoms = pca.mean_
-
-        # Save the coordinates of the first structure too (so we can get the
-        # correct bonds in the browser).
-        coords_first_frame = coor_data[0]
-
-        # Only select atoms of interest.
-        atomgroup = traj.select_atoms(selection)
-        # data_json will contain residue/atom info for user selection
-        data_json = []
-
-        # Save atom information.
-        last_key = ""
-        for a in atomgroup:
-            at_name = a.name
-            res_name = a.resname
-            res_id = a.resid
-
-            # If statement will check to see if residue id is present if it's not
-            # present it will add the residue id, residue name, and the residue's
-            # atoms.
-            key = str(res_id) + res_name # Because list is not hashable.
-            if key != last_key:
-                data_json.append([int(res_id), res_name, at_name])
-                last_key = key
-            else:
-                data_json.append(at_name)
-
-        # Return only the information necessary for compression and expansion.
-        return pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, \
-            coords_first_frame, data_json
-
-    def expand_PCA(self, pca_vectors, coords_project_onto_pca_space, coords_avg_atoms, precision):
-        """
-        This function decompresses a trajectory compressed with the compress_PCA function.
-
-        It uses only the information necessary for expansion back into XYZ-space and
-        returns a list of the decompressed atomic coordinates.
-
-        :param list pca_vectors: The principal components on which the trajectory
-                                has been projected.
-
-        :param list coords_project_onto_pca_space: The projected trajectory coordinates
-                                                in PCA-space.
-
-        :param list coords_avg_atoms: The average atomic coordinated of the
-                                    original trajectory.
-
-        :param int precision: How many decimal places to which the PCA vectors,
-                            projection, and atomic coordinates were rounded.
-
-        :returns: The decompressed trajectory. A list containing ndarrays of the atomic
-                coordinates at each frame in the same format as an ordinary MDAnalysis
-                Universe atom_selection.positions field.
-        :rtype: :class:'list'
-        """
-
-        pca_vectors = np.true_divide(pca_vectors, (10**precision))
-        coords_project_onto_pca_space = np.true_divide(coords_project_onto_pca_space,
-                                                    (10**precision))
-        coords_avg_atoms = np.true_divide(coords_avg_atoms, (10**precision))
-
-
-        # Prepare list to hold expanded trajectory coordinates.
-        expanded_coordinates = []
-
-        # Construct each frame's coordinates one at a time.
-        for frame_num, frame_coefficients in enumerate(coords_project_onto_pca_space):
-
-            # Calculate flattened XYZ coordinate delta values.
-            XYZ_coor_delta = np.dot(frame_coefficients, pca_vectors)
-
-            # Add the average atomic positions.
-            XYZ_coor = XYZ_coor_delta + coords_avg_atoms
-
-            expanded_coordinates.append(np.reshape(XYZ_coor, (len(XYZ_coor) // 3, 3)))
-
-        # Return the expanded coordinates.
-        return expanded_coordinates
-
-    def save_uncompressed_pdb(self, coors, atom_inf, output_filename):
-        """
-        Saves an XYZ file of the uncompressed trajectory.
-
-        :param list coors: A list of numpy.array coordinates.
-
-        :param list atom_inf: The residue index, name, and atom name of each atom.
-
-        :param string output_filename: The filename of the output xyz file.
-        """
-
-        atom_inf2 = []
-        last_resindex = None
-        last_resname = None
-        for ai in atom_inf:
-            if type(ai) == str:
-                atom_inf2.append([last_resindex, last_resname, ai])
-            else:
-                atom_inf2.append(ai)
-                last_resindex = ai[0]
-                last_resname = ai[1]
-
-        with open(output_filename, "w") as f:
-            coor_len = len(coors[0])
-            for i, coor in enumerate(coors):
-                f.write(str(coor_len) + "\n")
-                f.write(" pcaviz\n")
-                for c, ai in zip(coor, atom_inf2):
-                    x, y, z = c
-                    residx, resname, atomname = ai
-                    f.write(atomname + " " + str(x) + " " + str(y) + " " + str(z) + "\n")
-
-class TestsNameSpace:
-    def start(self):
-        output_dir = "tmp_testing" + os.sep
-        print("Running in test mode. All other parameters will be ignored.")
-        if os.path.exists(output_dir):
-            print("Directory already exists: " + output_dir + "! Delete this directory before running the test.")
-            sys.exit(0)
-        os.mkdir(output_dir)
-        params = {
-            "top_file": "examples/1J8K_example.pdb",
-            "coor_file": "examples/1J8K_example.pdb",
-            "selection": "name C N CA",
-            "output_dir": output_dir,
-            "stride": 2,
-            "cum_var": 0.8,
-            "precision": 1,
-            "check_accuracy": True,
-            "test": True
-        }
-        return params
-
-    def finish(self):
-        print("")
-        print("Checking if calculated mean RMSD is 0.53...")
-        mean = [l for l in open("tmp_testing" + os.sep + "1J8K_example.starting_vs_expanded_RMSD.csv")
-                if "mean" in l][0].split(",")[1][:4]
-        if (mean == "0.53"):
-            print("\tPassed!")
-        else:
-            print("\tFailed!")
-            shutil.rmtree('tmp_testing')
-            sys.exit(0)
-
-        PCA_inf = json.load(open("tmp_testing" + os.sep + "1J8K_example.compressed.json"))
-        print("Checking 846 coordinates (282 atoms * 3)...")
-        if len(PCA_inf["coors"]) == 846 and len(PCA_inf["first_coors"]) == 846:
-            print("\tPassed!")
-        else:
-            print("\tFailed!")
-            shutil.rmtree('tmp_testing')
-            sys.exit(0)
-
-        print("Checking 3 frames (5 original frames, stride 2)...")
-        if len(PCA_inf["coeffs"]) == 3:
-            print("\tPassed!")
-        else:
-            print("\tFailed!")
-            shutil.rmtree('tmp_testing')
-            sys.exit(0)
-
-        print("Checking 2 principal components...")
-        if len(PCA_inf["vecs"]) == 2:
-            print("\tPassed!")
-        else:
-            print("\tFailed!")
-            shutil.rmtree('tmp_testing')
-            sys.exit(0)
-
-        shutil.rmtree('tmp_testing')
-
-
-def check_accuracy(params, vect_components, PCA_coeff, coords_avg_atoms,
-                   num_decimals, coor_file, data_json_info):
-    # Prepare list to hold RMSD values.
-    RMSD_lst = []
-
-    # Calculate expanded coordinates.
-    expanded_trajectory = PCAFuncs.expand_PCA(vect_components, PCA_coeff,
-                                        coords_avg_atoms, num_decimals)
-
-    xyz_filename = Utils.output_filename('uncompressed',
-                                            'xyz',
-                                            coor_file=coor_file,
-                                            output_dir=params['output_dir'])
-    PCAFuncs.save_uncompressed_pdb(expanded_trajectory, data_json_info, xyz_filename)
-
-    # Calculate RMSD value of each frame between original and expanded trajectory.
-    for frame_id, traj_fram in enumerate(traj.trajectory):
-        original_positions = traj.select_atoms(params['selection']).positions
-        RMSD_lst.append(rms.rmsd(original_positions, expanded_trajectory[frame_id]))
-
-    # Create a list for outputting frame number.
-    frame_numbers = list(range(len(RMSD_lst)))
-    frame_numbers.append('mean')
-    frame_numbers.append('standard deviation')
-
-    # Also output the mean and standard deviation.
-    mean_RMSD = np.mean(RMSD_lst)
-    std_RMSD = np.std(RMSD_lst)
-    RMSD_lst.extend([mean_RMSD, std_RMSD])
-    print("The mean RMSD between the original and expanded trajectory is: " + \
-            str(mean_RMSD))
-    print("The standard deviation of the RMSD between the original and " + \
-            "expanded trajectory is: " + str(std_RMSD))
-
-    # Save a table containing results.
-    tbl_flnm = Utils.output_filename('starting_vs_expanded_RMSD',
-                                'csv',
-                                coor_file=coor_file,
-                                output_dir=params['output_dir'])
-    with open(tbl_flnm, 'w') as tf:
-        table_writer = csv.writer(tf)
-        table_writer.writerows(zip(frame_numbers, RMSD_lst))
-
-Utils = UtilsNameSpace()
-PCAFuncs = PCANameSpace()
-Tests = TestsNameSpace()
-
-# Main function.
-if __name__ == '__main__':
+def main():
+    """The main definition."""
     # Get user provided parameters and unpack frequently used parameters
     params = get_params()
 
@@ -583,7 +633,7 @@ if __name__ == '__main__':
 
     coor_file = params['coor_file']
     top_file = params['top_file']
-    num_decimals = params['precision']
+    precision = params['precision']
 
     # Load a trajectory for input file, aligning it if it is the first.
     traj = Utils.load_traj(top_file, coor_file)
@@ -611,19 +661,19 @@ if __name__ == '__main__':
     vect_components = vect_components[:len(PCA_coeff[0])]
 
     # Compress information further by rounding and converting to ints.
-    vect_components = Utils.compress_list(vect_components, num_decimals)
-    PCA_coeff = Utils.compress_list(PCA_coeff, num_decimals)
+    vect_components = Utils.compress_list(vect_components, precision)
+    PCA_coeff = Utils.compress_list(PCA_coeff, precision)
     coords_avg_atoms = Utils.compress_list(coords_avg_atoms,
-                                            num_decimals,
+                                            precision,
                                             flatten=True)
     coords_first_frame = Utils.compress_list(coords_first_frame,
-                                              num_decimals,
+                                              precision,
                                               flatten=True)
 
     # If the user request to check the accuracy of the expanded trajectory.
     if params['check_accuracy']:
-        check_accuracy(params, vect_components, PCA_coeff, coords_avg_atoms,
-                       num_decimals, coor_file, data_json_info)
+        Tests.check_accuracy(params, vect_components, PCA_coeff, coords_avg_atoms,
+                             precision, coor_file, data_json_info, traj)
 
     # dictionary to be outputted as a json.
     my_dict = {}
@@ -653,3 +703,7 @@ if __name__ == '__main__':
     # If it's running in test mode, finish the test
     if params["test"]:
         Tests.finish()
+
+
+if __name__ == '__main__':
+    main()
