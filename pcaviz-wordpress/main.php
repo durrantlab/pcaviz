@@ -38,6 +38,7 @@ register_activation_hook( __FILE__, 'pcaviz_plugin_activation' );
 
 /**
  * Displays any notices (e.g., the output of display_notice()).
+ *
  * @return void
  */
 function pcaviz_plugin_admin_notices() {
@@ -64,7 +65,6 @@ function my_myme_types($existing_mimes=array()) {
 add_filter( 'upload_mimes', 'my_myme_types' );
 
 // Register the necessary scripts.
-// wp_register_script('3Dmol-min', plugin_dir_url(__FILE__) . 'assets/js/3Dmol-min.js');
 wp_register_script('3Dmol-min', plugin_dir_url(__FILE__) . 'assets/js/3Dmol-nojquery-min.js', array('jquery'));
 wp_enqueue_script('3Dmol-min');
 
@@ -260,8 +260,6 @@ function pcaviz_options_page() { ?>
         </form>
     </div>
 <?php }
-
-// the settings are to be registered
 
 /**
  * Register the settings.
