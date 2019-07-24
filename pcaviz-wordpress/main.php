@@ -171,6 +171,28 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     }
     $atts["autoplay"] = strtolower($atts["autoplay"]);
 
+    if (is_null($atts["visstyle"])) {
+        $atts["visstyle"] = "{'cartoon':{}, 'stick':{'radius':0.5,'colorscheme':'Jmol'}}";
+    }
+    $atts["visstyle"] = pcaviz_protect_quotes($atts["visstyle"]);
+
+    if (is_null($atts["durationinmilliseconds"])) {
+        $atts["durationinmilliseconds"] = 10000;
+    }
+
+    if (is_null($atts["updatefreqinmilliseconds"])) {
+        $atts["updatefreqinmilliseconds"] = 16.67;
+    }
+    
+    if (is_null($atts["windowaveragesize"])) {
+        $atts["windowaveragesize"] = 1;
+    }
+
+    if (is_null($atts["caching"])) {
+        $atts["caching"] = "none";  // none, continuous, or pre
+    }
+    $atts["caching"] = strtolower($atts["caching"]);
+
     // The content is wrapped in a .pcaviz-container div.
     echo "<div style='width:$atts[width]px;' class='pcaviz-container wp-block-image";
     if (!is_null($atts['align'])) {
@@ -261,7 +283,7 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     // If the user didn't include a 'file' attribute in the shortcode, display
     // a dropdown listing all JSON files from the media library.
     if (is_null($atts['file'])) {
-        echo "<select style='width:$atts[width]px' id='pca-file-input' onchange='togglevisibility();makePCAViz(viewer, \"3DMOLJS\", this.options[this.selectedIndex].value, $atts[loop], $atts[autoplay])'>
+        echo "<select style='width:$atts[width]px' id='pca-file-input' onchange='togglevisibility();makePCAViz(viewer, \"3DMOLJS\", this.options[this.selectedIndex].value, $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\")'>
                   <option selected>Select file</option>";
         foreach ($jsons as $json){
             echo "<option value=$json[url]>$json[title] | $json[date_time]</option>";
@@ -284,7 +306,7 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
                 {
                 echo "<script>
                           togglevisibility();
-                          makePCAViz(viewer, \"3DMOLJS\", \"$json[url]\", $atts[loop], $atts[autoplay]);
+                          makePCAViz(viewer, \"3DMOLJS\", \"$json[url]\", $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\");
                       </script>";
                 $file_found = TRUE;
                 break;
@@ -303,6 +325,12 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
 
     // Return all the above code as a string.
     return ob_get_clean();
+}
+
+function pcaviz_protect_quotes($str) {
+    $str = str_replace("'", '"', $str);
+    $str = str_replace('"', '!QUOTE!', $str);
+    return $str;
 }
 
 /**
