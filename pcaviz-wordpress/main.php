@@ -116,11 +116,11 @@ add_action('admin_notices', 'pcaviz_plugin_admin_notices');
  *                               already allowed.
  * @return array  The same array, with json information added.
  */
-function my_myme_types($existing_mimes=array()) {
+function pcaviz_myme_types($existing_mimes=array()) {
     $existing_mimes['json'] = 'text/plain';
     return $existing_mimes;
 }
-add_filter( 'upload_mimes', 'my_myme_types' );
+add_filter( 'upload_mimes', 'pcaviz_myme_types' );
 
 // Register the necessary scripts.
 wp_register_script('3Dmol-min', plugin_dir_url(__FILE__) . 'assets/js/3Dmol-nojquery-min.js', array('jquery'));
