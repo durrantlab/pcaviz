@@ -148,6 +148,8 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     // Normalize attribute keys, lowercase.
     $atts = array_change_key_case((array)$atts, CASE_LOWER);
 
+    // Set some default values.
+
     // We need a default width for 3dmoljs.
     if (is_null($atts['width'])) {
         $atts['width'] = 333;
@@ -158,6 +160,16 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
         // Golden ratio
         $atts['height'] = $atts['width'] / 1.61803398875;
     }
+
+    if (is_null($atts["loop"])) {
+        $atts["loop"] = "true";
+    }
+    $atts["loop"] = strtolower($atts["loop"]);
+    
+    if (is_null($atts["autoplay"])) {
+        $atts["autoplay"] = "true";
+    }
+    $atts["autoplay"] = strtolower($atts["autoplay"]);
 
     // The content is wrapped in a .pcaviz-container div.
     echo "<div style='width:$atts[width]px;' class='pcaviz-container wp-block-image";
@@ -249,7 +261,7 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     // If the user didn't include a 'file' attribute in the shortcode, display
     // a dropdown listing all JSON files from the media library.
     if (is_null($atts['file'])) {
-        echo "<select style='width:$atts[width]px' id='pca-file-input' onchange='togglevisibility();makePCAViz(viewer, \"3DMOLJS\", this.options[this.selectedIndex].value)'>
+        echo "<select style='width:$atts[width]px' id='pca-file-input' onchange='togglevisibility();makePCAViz(viewer, \"3DMOLJS\", this.options[this.selectedIndex].value, $atts[loop], $atts[autoplay])'>
                   <option selected>Select file</option>";
         foreach ($jsons as $json){
             echo "<option value=$json[url]>$json[title] | $json[date_time]</option>";
@@ -272,7 +284,7 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
                 {
                 echo "<script>
                           togglevisibility();
-                          makePCAViz(viewer, \"3DMOLJS\", \"$json[url]\");
+                          makePCAViz(viewer, \"3DMOLJS\", \"$json[url]\", $atts[loop], $atts[autoplay]);
                       </script>";
                 $file_found = TRUE;
                 break;
