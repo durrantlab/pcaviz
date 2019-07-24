@@ -150,7 +150,7 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
 
     // We need a default width for 3dmoljs.
     if (is_null($atts['width'])) {
-        $atts['width'] = 200;  // "200px";
+        $atts['width'] = 333;
     }
 
     // Good to set default height too.
