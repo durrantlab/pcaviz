@@ -33,8 +33,66 @@ function pcaviz_plugin_activation() {
     ."chances of getting grants to fund our ongoing work. Not to worry. We "
     ."respect user privacy!";
     update_option('pcaviz_plugin_deferred_admin_notices', $notices);
+    
+    // Copy default trajectories to the media library
+    $txt = pcaviz_add_default_files();
 }
 register_activation_hook( __FILE__, 'pcaviz_plugin_activation' );
+
+/**
+ * Adds sample JSON trajectory files to the media library.
+ *
+ * @return void
+ */
+function pcaviz_add_default_files() {
+    // See https://wordpress.stackexchange.com/questions/256830/programmatically-adding-images-to-media-library
+
+    // Get info re. the upload directory.
+    $upload_dir = wp_upload_dir();
+
+    // ob_start();
+
+    // Get the source file in the assets directory.
+    $all_flnms = plugin_dir_path(__FILE__).'assets/sims/*.compressed.json';
+    foreach(glob($all_flnms) as $src_flnm) {
+        // Get the contents of that file.
+        $data = file_get_contents($src_flnm);
+
+        // And the base filename.
+        $filename = basename($src_flnm);
+
+        // Make the pcaviz directory in uploads if necessary.
+        $example_json_outdir = $upload_dir['basedir'].'/pca-sample-trajs';
+        wp_mkdir_p($example_json_outdir);
+
+        // Pick the file.
+        $file = $example_json_outdir.'/'.$filename;
+
+        // If the file already exists, skip copying it.
+        if (!file_exists($file)) {
+            // Save the file to that location.
+            file_put_contents($file, $data);
+    
+            // Get information about the file
+            $sim_inf = file($src_flnm.'.inf');
+            
+            $wp_filetype = wp_check_filetype($filename, null);
+    
+            // Save the attachment to the media library.
+            $attachment = array(
+                'post_mime_type' => $wp_filetype['type'],
+                'post_title' => $sim_inf[0],
+                'post_content' => '',
+                'post_status' => 'inherit',
+                'post_excerpt' => $sim_inf[1]
+            );
+    
+            $attach_id = wp_insert_attachment($attachment, $file);
+        }
+    }
+
+    // return ob_get_clean();
+}
 
 /**
  * Displays any notices (e.g., the output of display_notice()).
