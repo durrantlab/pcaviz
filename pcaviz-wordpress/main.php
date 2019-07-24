@@ -260,9 +260,10 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
         // the user-provided file name is a substring of any file in the media
         // library. Output javascript code to display that file once it is
         // found.
+        $file_found = FALSE;
         foreach ($jsons as $json){
             // if (strpos($json["file_name"], preg_replace('/\\.[^.\\s]{3,4}$/', '', $atts['file'])) !== false){
-                $file_to_test = strtolower($atts['file']);
+            $file_to_test = strtolower($atts['file']);
             if (
                     (strpos(strtolower($json["file_name"]), preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_to_test)) !== false) |
                     (strpos(strtolower($json["url"]), preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_to_test)) !== false) |
@@ -273,15 +274,20 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
                           togglevisibility();
                           makePCAViz(viewer, \"3DMOLJS\", \"$json[url]\");
                       </script>";
+                $file_found = TRUE;
                 break;
             }
+        }
+        if (!$file_found) {
+            // File not found.
+            echo "<span style='color:red;'><b>Error! No trajectory file "
+                 ."(*.compressed.json) in the media library has a file name, "
+                 ."url, or title that contains the string \""
+                 .$file_to_test."\".</b></span>";
         }
     }
 
     echo "</div>";  // .pcaviz-container
-
-    // Insert a div so you know when the plugin is done.
-    echo "<div class='end-pcaviz-container'></div>";
 
     // Return all the above code as a string.
     return ob_get_clean();
