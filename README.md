@@ -183,7 +183,12 @@ libraries.
                 viewerType: viewerType,
 
                 // The 3DMol.js style scheme (i.e., how to represent the
-                // model).
+                // model). Note that these styles are applied to all atoms of
+                // the model. To apply different styles to different atom
+                // selections, run PCAViz in GENERIC mode and specify a custom
+                // render() function. See 3dmdoljs_generic.html and
+                // https://3dmol.csb.pitt.edu/doc/$3Dmol.GLViewer.html#setStyle
+                // for more information.
                 visStyle: {cartoon:{}, stick:{radius:.5,colorscheme:'Jmol'}},
 
                 // The number of milliseconds it should take to play the
@@ -205,6 +210,13 @@ libraries.
                 // The number of frames PCAViz should consider when smoothing
                 // the trajectory motions via a windowed average.
                 windowAverageSize: 1,
+
+                // The type of atom-coordinate caching to use. Acceptable
+                // values are "none" (no caching), "continuous" (cache each
+                // frame's coordinates after they are first calculated), and
+                // "pre" (calculate and cache all frame coordinates before
+                // starting the animation).
+                caching: "none"
             });
 
             // Load in the PCAViz JSON file, created with the PCAViz
@@ -277,8 +289,19 @@ WordPress post or page.
    ending in `.compressed.json` that includes your specified text in its
    title, URL, or file name. <br>
    `[pcaviz file="larp1"]`
-3. You can also control the way the molecules are displayed. The WordPress
-   plugin uses [3DMol.js](https://3dmol.csb.pitt.edu) to render the molecules. Use _NEED MORE HERE!!!_ visStyle. Say that style must be valid json, with the exception that ' treated like " for ease of use in shortcode. 3DMol.js examples show javascript objects (similar but not identical). Also, put link to styles page of 3DMol.js
+3. You can also control the molecular styles. The WordPress plugin uses
+   [3DMol.js](https://3dmol.csb.pitt.edu) to render molecules. Passing the
+   plugin a [3DMol.js
+   AtomStyleSpec](https://3dmol.csb.pitt.edu/doc/types.html#AtomStyleSpec)
+   JSON string changes the way the molecules are displayed. <br>
+   `[pcaviz visStyle='{"cartoon": {"style": "trace", "color": "grey", "opacity": 0.75}}']`
+   Note that the [3DMol.js
+   documentation](https://3dmol.csb.pitt.edu/doc/$3Dmol.GLViewer.html#setStyle)
+   shows AtomStyleSpec examples as JavaScript objects. PCAViz accepts only
+   JSON strings. The two look similar, but with important differences (e.g.,
+   keys in JSON strings must always be quoted). We recommend using a [JSON
+   validator](https://jsonformatter.curiousconcept.com) to check your
+   AtomStyleSpec strings.
 
 #### Minor Attributes ####
 
@@ -290,7 +313,6 @@ WordPress post or page.
    `[pcaviz align="right" caption="My molecule in motion!"]`
 3. To hide the playback buttons: <br>
    `[pcaviz playback_buttons="false"]`
-
 4. To prevent the plugin from looping the animation: <br>
    `[pcaviz loop="false"]`
 5. The plugin starts playing the simulation automatically by default. To
@@ -304,6 +326,6 @@ WordPress post or page.
    `[pcaviz windowAverageSize=25]`
 8. To control how the plugin caches calculated coordinates: <br>
    `[pcaviz caching="continuous"]` <br>
-   Acceptable values are "none" (no caching), "continuous" (cache coordinates
-   after they are first calculated), and "pre" (calculate and cache all frame
-   coordinates before starting the animation).
+   Acceptable values are "none" (no caching), "continuous" (cache each frame's
+   coordinates after they are first calculated), and "pre" (calculate and
+   cache all frame coordinates before starting the animation).

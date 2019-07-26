@@ -66,7 +66,12 @@
                 viewerType: viewerType,
 
                 // The 3DMol.js style scheme (i.e., how to represent the
-                // model).
+                // model). Note that these styles are applied to all atoms of
+                // the model. To apply different styles to different atom
+                // selections, run PCAViz in GENERIC mode and specify a custom
+                // render() function. See 3dmdoljs_generic.html and
+                // https://3dmol.csb.pitt.edu/doc/$3Dmol.GLViewer.html#setStyle
+                // for more information.
                 visStyle: {cartoon:{}, stick:{radius:.5,colorscheme:'Jmol'}},
 
                 // The number of milliseconds it should take to play the
@@ -88,6 +93,13 @@
                 // The number of frames PCAViz should consider when smoothing
                 // the trajectory motions via a windowed average.
                 windowAverageSize: 1,
+
+                // The type of atom-coordinate caching to use. Acceptable
+                // values are "none" (no caching), "continuous" (cache each
+                // frame's coordinates after they are first calculated), and
+                // "pre" (calculate and cache all frame coordinates before
+                // starting the animation).
+                caching: "none"
             });
 
             // Load in the PCAViz JSON file, created with the PCAViz

@@ -72,7 +72,8 @@
                 // GENERIC in this case.
                 viewerType: viewerType,
 
-                // ???????
+                // In GENERIC mode, specify the style in the render() function
+                // (below).
                 visStyle: undefined,  // Not needed when in generic mode
 
                 // The number of milliseconds it should take to play the
@@ -94,6 +95,13 @@
                 // The number of frames PCAViz should consider when smoothing
                 // the trajectory motions via a windowed average.
                 windowAverageSize: 1,
+
+                // The type of atom-coordinate caching to use. Acceptable
+                // values are "none" (no caching), "continuous" (cache each
+                // frame's coordinates after they are first calculated), and
+                // "pre" (calculate and cache all frame coordinates before
+                // starting the animation).
+                caching: "none",
 
                 // Because you're running PCAViz in GENERIC mode, you have to
                 // tell it how to serve the PDB-formatted coordinates it

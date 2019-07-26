@@ -824,12 +824,22 @@ var PCAVizNameSpace;
                     // Save the new timestampLastFire value.
                     timestampLastFire = timestamp;
                     // How far along the animation are you?
-                    playRatio = (deltaStartRatio + timestamp / _this._parent._params["durationInMilliseconds"]) % 1.0;
+                    playRatio = (deltaStartRatio + timestamp / _this._parent._params["durationInMilliseconds"]);
                     // If you've gone over the end of the animation and it's not
                     // set to loop, stop.
-                    if ((!_this._parent._params["loop"]) && (playRatio > 1.0)) {
-                        _this["stop"]();
-                        return;
+                    if (playRatio > 1.0) {
+                        // You've gone over the end of the animation.
+                        if (!_this._parent._params["loop"]) {
+                            // No loop requested, so stop.
+                            _this["stop"](); // Sets this._animationFrameID to undefined.
+                            playRatio = 1.0;
+                            // this._parent._playerControls.setSlider(this._parent._numFramesTotal);
+                            // return;
+                        }
+                        else {
+                            // Loop requested.
+                            playRatio = playRatio % 1.0;
+                        }
                     }
                     // Get the current frame.
                     curFrame = Math.floor(_this._parent._numFramesTotal * playRatio);
