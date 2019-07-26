@@ -366,6 +366,69 @@ function pcaviz_options_page() { ?>
                 Allow Analytics
             </p>
             <?php  submit_button(); ?>
+            <hr />
+            <h3 id="examplesofuse">Examples of Use</h3>
+
+            <p>The PCAViz WordPress Plugin uses shortcodes that can be inserted into any WordPress post or page.</p>
+
+            <h4 id="majorattributes">Major Attributes</h4>
+
+            <ol>
+                <li>If you use the plugin without any attributes, it will allow your site visitors to select from any of the compressed JSON files you've uploaded to your WordPress media library. Note that these files must end in
+                    <code>.compressed.json</code> to be recognized.
+                    <br>
+                    <code>[pcaviz]</code></li>
+
+                <li>If you want to show your site visitors a specific simulation present in your media library, simplify specify the name of the simulation. PCAViz will search through your media library and will choose the first JSON file ending in <code>.compressed.json</code> that includes your specified text in its title, URL, or file name.
+                    <br>
+                    <code>[pcaviz file="larp1"]</code></li>
+
+                <li>You can also control the molecular styles. The WordPress plugin uses
+                    <a href="https://3dmol.csb.pitt.edu">3DMol.js</a> to render molecules. Passing the plugin a <a href="https://3dmol.csb.pitt.edu/doc/types.html#AtomStyleSpec">3DMol.js
+            AtomStyleSpec</a> JSON string changes the way the molecules are displayed.
+                    <br>
+                    <code>[pcaviz visStyle='{"cartoon": {"style": "trace", "color": "grey", "opacity": 0.75}}']</code>
+                    <br> Note that the <a href="https://3dmol.csb.pitt.edu/doc/$3Dmol.GLViewer.html#setStyle">3DMol.js
+            documentation</a> shows AtomStyleSpec examples as JavaScript objects. PCAViz accepts only JSON strings. The two look similar, but with important differences (e.g., keys in JSON strings must always be quoted). We recommend using a <a href="https://jsonformatter.curiousconcept.com">JSON
+            validator</a> to check your AtomStyleSpec strings.</li>
+            </ol>
+
+            <h4 id="minorattributes">Minor Attributes</h4>
+
+            <ol>
+                <li>To explicitly specify the height and width of the viewer, in pixels:
+                    <br>
+                    <code>[pcaviz height=150 width=150]</code></li>
+
+                <li>To align the viewer to the left, center, or right, and to optionally add a caption:
+                    <br>
+                    <code>[pcaviz align="right" caption="My molecule in motion!"]</code></li>
+
+                <li>To hide the playback buttons:
+                    <br>
+                    <code>[pcaviz playback_buttons="false"]</code></li>
+
+                <li>To prevent the plugin from looping the animation:
+                    <br>
+                    <code>[pcaviz loop="false"]</code></li>
+
+                <li>The plugin starts playing the simulation automatically by default. To deactivate autoplay:
+                    <br>
+                    <code>[pcaviz autoplay="false"]</code></li>
+
+                <li>To specify the duration of the animation and how frequently the atomic positions are updated:
+                    <br>
+                    <code>[pcaviz durationInMilliseconds=10000 updateFreqInMilliseconds=50]</code></li>
+
+                <li>To smooth the animation by averaging the atomic coordinates over multiple frames:
+                    <br>
+                    <code>[pcaviz windowAverageSize=25]</code></li>
+
+                <li>To control how the plugin caches calculated coordinates:
+                    <br>
+                    <code>[pcaviz caching="continuous"]</code>
+                    <br> Acceptable values are "none" (no caching), "continuous" (cache each frame's coordinates after they are first calculated), and "pre" (calculate and cache all frame coordinates before starting the animation).</li>
+            </ol>
         </form>
     </div>
 <?php }
