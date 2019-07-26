@@ -264,6 +264,8 @@ your WordPress admin screen
 The PCAViz WordPress Plugin uses shortcodes that can be inserted into any
 WordPress post or page.
 
+#### Major Attributes ####
+
 1. If you use the plugin without any attributes, it will allow your site
    visitors to select from any of the compressed JSON files you've uploaded to
    your WordPress media library. Note that these files must end in
@@ -275,11 +277,33 @@ WordPress post or page.
    ending in `.compressed.json` that includes your specified text in its
    title, URL, or file name. <br>
    `[pcaviz file="larp1"]`
-3. You can explicitly specify the height and width of the viewer, in pixels.
+3. You can also control the way the molecules are displayed. The WordPress
+   plugin uses [3DMol.js](https://3dmol.csb.pitt.edu) to render the molecules. Use _NEED MORE HERE!!!_ visStyle. Say that style must be valid json, with the exception that ' treated like " for ease of use in shortcode. 3DMol.js examples show javascript objects (similar but not identical). Also, put link to styles page of 3DMol.js
+
+#### Minor Attributes ####
+
+1. To explicitly specify the height and width of the viewer, in pixels:
    <br>
    `[pcaviz height=150 width=150]`
-4. It is also possible to align the viewer to the left, center, or right, and
-   to optionally add a caption.<br>
+2. To align the viewer to the left, center, or right, and to optionally add a
+   caption: <br>
    `[pcaviz align="right" caption="My molecule in motion!"]`
-5. You may also hide the playback buttons. <br>
+3. To hide the playback buttons: <br>
    `[pcaviz playback_buttons="false"]`
+
+4. To prevent the plugin from looping the animation: <br>
+   `[pcaviz loop="false"]`
+5. The plugin starts playing the simulation automatically by default. To
+   deactivate autoplay: <br>
+   `[pcaviz autoplay="false"]`
+6. To specify the duration of the animation and how frequently the atomic
+   positions are updated: <br>
+   `[pcaviz durationInMilliseconds=10000 updateFreqInMilliseconds=50]`
+7. To smooth the animation by averaging the atomic coordinates over multiple
+   frames: <br>
+   `[pcaviz windowAverageSize=25]`
+8. To control how the plugin caches calculated coordinates: <br>
+   `[pcaviz caching="continuous"]` <br>
+   Acceptable values are "none" (no caching), "continuous" (cache coordinates
+   after they are first calculated), and "pre" (calculate and cache all frame
+   coordinates before starting the animation).

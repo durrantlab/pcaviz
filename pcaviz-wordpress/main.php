@@ -33,7 +33,7 @@ function pcaviz_plugin_activation() {
     ."chances of getting grants to fund our ongoing work. Not to worry. We "
     ."respect user privacy!";
     update_option('pcaviz_plugin_deferred_admin_notices', $notices);
-    
+
     // Copy default trajectories to the media library
     $txt = pcaviz_add_default_files();
 }
@@ -72,12 +72,12 @@ function pcaviz_add_default_files() {
         if (!file_exists($file)) {
             // Save the file to that location.
             file_put_contents($file, $data);
-    
+
             // Get information about the file
             $sim_inf = file($src_flnm.'.inf');
-            
+
             $wp_filetype = wp_check_filetype($filename, null);
-    
+
             // Save the attachment to the media library.
             $attachment = array(
                 'post_mime_type' => $wp_filetype['type'],
@@ -86,7 +86,7 @@ function pcaviz_add_default_files() {
                 'post_status' => 'inherit',
                 'post_excerpt' => $sim_inf[1]
             );
-    
+
             $attach_id = wp_insert_attachment($attachment, $file);
         }
     }
@@ -165,7 +165,7 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
         $atts["loop"] = "true";
     }
     $atts["loop"] = strtolower($atts["loop"]);
-    
+
     if (is_null($atts["autoplay"])) {
         $atts["autoplay"] = "true";
     }
@@ -183,7 +183,7 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     if (is_null($atts["updatefreqinmilliseconds"])) {
         $atts["updatefreqinmilliseconds"] = 16.67;
     }
-    
+
     if (is_null($atts["windowaveragesize"])) {
         $atts["windowaveragesize"] = 1;
     }
@@ -192,6 +192,11 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
         $atts["caching"] = "none";  // none, continuous, or pre
     }
     $atts["caching"] = strtolower($atts["caching"]);
+    $atts["caching"] = trim($atts["caching"]);
+    if (!in_array($atts["caching"], Array("none", "continuous", "pre"))) {
+        echo "<span style='color:red;'><b>Error! The caching attribute must ".
+        "be either \"none\", \"continuous\", or \"pre\".</b></span>";
+    }
 
     // The content is wrapped in a .pcaviz-container div.
     echo "<div style='width:$atts[width]px;' class='pcaviz-container wp-block-image";
