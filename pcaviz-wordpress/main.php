@@ -366,6 +366,7 @@ function pcaviz_options_page() { ?>
                 Allow Analytics
             </p>
             <?php  submit_button(); ?>
+
             <hr />
             <h3 id="examplesofuse">Examples of Use</h3>
 
