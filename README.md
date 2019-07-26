@@ -294,7 +294,7 @@ WordPress post or page.
    plugin a [3DMol.js
    AtomStyleSpec](https://3dmol.csb.pitt.edu/doc/types.html#AtomStyleSpec)
    JSON string changes the way the molecules are displayed. <br>
-   `[pcaviz visStyle='{"cartoon": {"style": "trace", "color": "grey", "opacity": 0.75}}']`
+   `[pcaviz visStyle='{"cartoon": {"style": "trace", "color": "grey", "opacity": 0.75}}']` <br>
    Note that the [3DMol.js
    documentation](https://3dmol.csb.pitt.edu/doc/$3Dmol.GLViewer.html#setStyle)
    shows AtomStyleSpec examples as JavaScript objects. PCAViz accepts only
