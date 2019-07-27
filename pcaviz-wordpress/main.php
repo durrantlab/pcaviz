@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: PCAviz
+ * Plugin Name: PCAViz
  *
  * @package     PCAViz
  * @author      Yuri Kochnev, Jacob Durrant
@@ -374,7 +374,7 @@ function pcaviz_protect_quotes($str) {
 function pcaviz_options_page() { ?>
     <div>
         <?php screen_icon(); ?>
-        <h2>PCAviz Plugin Settings</h2>
+        <h2>PCAViz Plugin Settings</h2>
         <form method="post" action="options.php">
             <?php settings_fields( 'pcaviz_options_group' ); ?>
             <h3>Please allow us to collect limited data on PCAViz usage.</h3>
@@ -484,7 +484,7 @@ add_action( 'admin_init', 'pcaviz_register_settings' );
  * @return void
  */
 function pcaviz_register_options_page() {
-  add_options_page('Page Title', 'PCAviz', 'manage_options', 'pcaviz', 'pcaviz_options_page');
+  add_options_page('Page Title', 'PCAViz', 'manage_options', 'pcaviz', 'pcaviz_options_page');
 }
 add_action('admin_menu', 'pcaviz_register_options_page');
 
