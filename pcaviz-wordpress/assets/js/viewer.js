@@ -1,14 +1,17 @@
-let element = jQuery('#pcaviz-viscontainer');
-let config = {backgroundColor: 'white'};
-let viewer = $3Dmol.createViewer(element, config);
-
 // Run sims in the browsers
-function makePCAViz(viewer, viewerType, datafile, loop, autoplay, visStyle, durationInMilliseconds, updateFreqInMilliseconds, windowAverageSize, caching) {
+function makePCAViz(uniqId, viewerType, datafile, loop, autoplay, visStyle, durationInMilliseconds, updateFreqInMilliseconds, windowAverageSize, caching) {
+    // debugger;
+    let element = jQuery('#pcaviz-viscontainer-' + uniqId);
+    let config = {
+        backgroundColor: 'white'
+    };
+    let viewer = $3Dmol.createViewer(element, config);
+
     // visStyle was protected, in case it contains quotes. Deprotect those values.
     visStyle = visStyle.replace(/!QUOTE!/g, '"');
-    console.log(visStyle);
     visStyle = JSON.parse(visStyle);
 
+    // debugger;
 
     element.show();
     let pcaViz = new PCAViz({
@@ -16,9 +19,9 @@ function makePCAViz(viewer, viewerType, datafile, loop, autoplay, visStyle, dura
         viewerType: viewerType,
         visStyle: visStyle, // {cartoon:{}, stick:{radius:.5,colorscheme:'Jmol'}},
         durationInMilliseconds: durationInMilliseconds,
-        updateFreqInMilliseconds: updateFreqInMilliseconds,  // 60 fps
+        updateFreqInMilliseconds: updateFreqInMilliseconds, // 60 fps
         loop: loop,
-        playerControlsID: document.getElementById('pcaviz-controls') ? 'pcaviz-controls' : element,
+        playerControlsID: document.getElementById('pcaviz-controls-' + uniqId) ? 'pcaviz-controls-' + uniqId : element,
         windowAverageSize: windowAverageSize,
         caching: caching
     });
@@ -32,4 +35,16 @@ function makePCAViz(viewer, viewerType, datafile, loop, autoplay, visStyle, dura
             pcaViz.player.start();
         }
     });
+}
+
+function pcaVizSetCaption(uniqId) {
+    let select = jQuery('#pca-file-input-' + uniqId + ' option:selected');
+    let captionTxt = jQuery(select).data('caption');
+    let captionDiv = jQuery('#pcaviz-figcaption-' + uniqId);
+    captionDiv.html(captionTxt);
+    jQuery('#pca-file-input-' + uniqId).hide();
+}
+
+function pcaVizToggleVisibility(uniqId) {
+    jQuery('#pcaviz-collapsable-' + uniqId).show();
 }

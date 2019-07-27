@@ -1137,9 +1137,9 @@ namespace PCAVizNameSpace {
                 );
 
                 // Add the content to that div.
-                let randomID = "id " + Math.random().toString().replace(/\./g, "");
+                let randomID = "id-" + Math.random().toString().replace(/\./g, "");
                 controllerDiv.innerHTML = `
-                    <div class="pcaviz-pcaviz-controls-container" style="display: flex; flex-direction: row;">
+                    <div class="pcaviz-controls-container" style="display: flex; flex-direction: row;">
                         <div class="pcaviz-button-container" style="flex: none;">
                             <button id="${randomID}-play" class="pcaviz-play pcaviz-button" style="height: 100%;">
                                 <img src="${this._images.play}" />

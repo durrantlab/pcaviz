@@ -126,9 +126,14 @@ add_filter( 'upload_mimes', 'pcaviz_myme_types' );
 wp_register_script('3Dmol-min', plugin_dir_url(__FILE__) . 'assets/js/3Dmol-nojquery-min.js', array('jquery'));
 wp_enqueue_script('3Dmol-min');
 
-wp_register_script('PCAViz.min', plugin_dir_url(__FILE__) . 'assets/js/PCAViz.min.js');
-wp_enqueue_script('PCAViz.min');
+wp_register_script('PCAViz-min', plugin_dir_url(__FILE__) . 'assets/js/PCAViz.min.js');  // Should not require jquery
+wp_enqueue_script('PCAViz-min');
+
+wp_register_script('PCAViz-support', plugin_dir_url(__FILE__) . 'assets/js/viewer.js', array('PCAViz-min'));
+wp_enqueue_script('PCAViz-support');
+
 wp_enqueue_script('jquery');
+
 wp_register_script('GoogleAnalytics', plugin_dir_url( __FILE__ ) . 'assets/js/googleanalytics.js');
 wp_enqueue_script('GoogleAnalytics');
 
@@ -148,6 +153,9 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     // Normalize attribute keys, lowercase.
     $atts = array_change_key_case((array)$atts, CASE_LOWER);
 
+    // Get a random ID so you can have multiple pcaviz viewers on a page.
+    $uniqid = uniqid();
+
     // Set some default values.
 
     // We need a default width for 3dmoljs.
@@ -161,45 +169,59 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
         $atts['height'] = $atts['width'] / 1.61803398875;
     }
 
+    // Loop
     if (is_null($atts["loop"])) {
         $atts["loop"] = "true";
     }
-    $atts["loop"] = strtolower($atts["loop"]);
 
+    // Autoplay
     if (is_null($atts["autoplay"])) {
         $atts["autoplay"] = "true";
     }
-    $atts["autoplay"] = strtolower($atts["autoplay"]);
 
+    // VisStyle
     if (is_null($atts["visstyle"])) {
         $atts["visstyle"] = "{'cartoon':{}, 'stick':{'radius':0.5,'colorscheme':'Jmol'}}";
     }
     $atts["visstyle"] = pcaviz_protect_quotes($atts["visstyle"]);
 
+    // durationinmilliseconds
     if (is_null($atts["durationinmilliseconds"])) {
         $atts["durationinmilliseconds"] = 10000;
     }
 
+    // updatefreqinmilliseconds
     if (is_null($atts["updatefreqinmilliseconds"])) {
         $atts["updatefreqinmilliseconds"] = 16.67;
     }
 
+    // windowaveragesize
     if (is_null($atts["windowaveragesize"])) {
         $atts["windowaveragesize"] = 1;
     }
 
+    // caching
     if (is_null($atts["caching"])) {
         $atts["caching"] = "none";  // none, continuous, or pre
     }
-    $atts["caching"] = strtolower($atts["caching"]);
     $atts["caching"] = trim($atts["caching"]);
     if (!in_array($atts["caching"], Array("none", "continuous", "pre"))) {
         echo "<span style='color:red;'><b>Error! The caching attribute must ".
         "be either \"none\", \"continuous\", or \"pre\".</b></span>";
     }
 
+    // medialibrarycaption
+    if (is_null($atts["medialibrarycaption"])) {
+        $atts["medialibrarycaption"] = "false";
+    }
+    if (is_null($atts["file"])) {
+        // No file specified? They use media library captions. Because it will
+        // depend on the one selected.
+        $atts["medialibrarycaption"] = "true";
+    }
+
     // The content is wrapped in a .pcaviz-container div.
-    echo "<div style='width:$atts[width]px;' class='pcaviz-container wp-block-image";
+    echo "<div style='width:$atts[width]px;' id='pcaviz-container-".$uniqid."' class='pcaviz-container wp-block-image";
     if (!is_null($atts['align'])) {
         echo " align$atts[align]";
     }
@@ -216,22 +238,22 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
 
     // If the height attribute was set by user, we overwrite the css setting.
     if(!is_null($atts['height'])) {
-        echo "<style>#pcaviz-vis-and-controls {height: $atts[height]px !important;}</style>";
+        echo "<style>#pcaviz-vis-and-controls-".$uniqid." {height: $atts[height]px !important;}</style>";
     }
 
     // If the width attribute was set by user, we overwrite the css setting.
     if(!is_null($atts['width'])) {
-        echo "<style>#pcaviz-vis-and-controls {width: $atts[width]px !important;}</style>";
+        echo "<style>#pcaviz-vis-and-controls-".$uniqid." {width: $atts[width]px !important;}</style>";
     }
 
     // The canvas is wrapped into "pcaviz-collapsable" div. There's a script bellow
     // that toggles its visibility.
-    echo "    <div id='pcaviz-collapsable'>";
+    echo "    <div id='pcaviz-collapsable-".$uniqid."' style='display: none;'>";
 
     // Setup the playback pcaviz-controls.
-    echo "    <div id='pcaviz-vis-and-controls'>";
-    echo "        <div id='pcaviz-viscontainer'></div>";
-    echo "        <div id='pcaviz-controls'";
+    echo "    <div class='pcaviz-vis-and-controls' id='pcaviz-vis-and-controls-".$uniqid."'>";
+    echo "        <div class='pcaviz-viscontainer' id='pcaviz-viscontainer-".$uniqid."'></div>";
+    echo "        <div class='pcaviz-controls' id='pcaviz-controls-".$uniqid."'";
 
     // Only display playback buttons if the user requested them in the shortcode.
     if ((!is_null($atts['playback_buttons'])) && ($atts['playback_buttons'] === 'false')) {
@@ -241,18 +263,6 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
 
     echo "</div>";  // #pcaviz-controls
     echo "</div>";  // #pcaviz-vis-and-controls
-
-    // Add a caption if it's set.
-    if(!is_null($atts['caption'])) {
-        echo "<figcaption>$atts[caption]</figcaption>";
-    }
-
-    echo "</div>";  // #pcaviz-collapsable
-
-    // Load the PCAViz javascript code.
-    echo "<script type='text/javascript' src='"
-          .plugin_dir_url(__FILE__)."assets/js/viewer.js'"
-          ."></script>";
 
     // Get a list of all the JSON files that have been uploaded to the media
     // library. Put that list in a variable called $jsons.
@@ -268,32 +278,31 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
         $url = wp_get_attachment_url($json->ID);
         if (substr($url, -strlen(".compressed.json")) === ".compressed.json") {
             // Filename ends with ".compressed.json"
+
+            // Caption must not have quote
+            $caption = str_replace('"', '', $json->post_excerpt);
+
             $jsons[] = array(
                 "url" => $url,
                 "file_name" => $json->post_name,
                 "date_time" => $json->post_date,
-                "title" => $json->post_title
+                "title" => $json->post_title,
+                "caption" => $caption
             );
         }
     }
 
-    // Add javascript for toggling the "pcaviz-collapsable" div.
-    echo "<script>
-              jQuery('#pcaviz-collapsable').hide();
-              function togglevisibility() {
-                  jQuery('#pcaviz-collapsable').show();
-              }
-          </script>";
-
     // If the user didn't include a 'file' attribute in the shortcode, display
     // a dropdown listing all JSON files from the media library.
+    $html = "";
+    $medialibrarycaption = "";
     if (is_null($atts['file'])) {
-        echo "<select style='width:$atts[width]px' id='pca-file-input' onchange='togglevisibility();makePCAViz(viewer, \"3DMOLJS\", this.options[this.selectedIndex].value, $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\")'>
+        $html .= "<select style='width:$atts[width]px' id='pca-file-input-".$uniqid."' onchange='pcaVizToggleVisibility(\"".$uniqid."\");pcaVizSetCaption(\"".$uniqid."\");makePCAViz(\"".$uniqid."\", \"3DMOLJS\", this.options[this.selectedIndex].value, $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\")'>
                   <option selected>Select file</option>";
         foreach ($jsons as $json){
-            echo "<option value=$json[url]>$json[title] | $json[date_time]</option>";
+            $html .= "<option data-caption='$json[caption]' value=$json[url]>$json[title] | $json[date_time]</option>";
         }
-        echo '</select>';
+        $html .= '</select>';
     } else {
         // The user provided a 'file' attribute in the shortcode. Search if
         // the user-provided file name is a substring of any file in the media
@@ -302,29 +311,48 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
         $file_found = FALSE;
         foreach ($jsons as $json){
             // if (strpos($json["file_name"], preg_replace('/\\.[^.\\s]{3,4}$/', '', $atts['file'])) !== false){
-            $file_to_test = strtolower($atts['file']);
+            $file_to_test = $atts['file'];
             if (
                     (strpos(strtolower($json["file_name"]), preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_to_test)) !== false) |
                     (strpos(strtolower($json["url"]), preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_to_test)) !== false) |
                     (strpos(strtolower($json["title"]), preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_to_test)) !== false)
                 )
                 {
-                echo "<script>
-                          togglevisibility();
-                          makePCAViz(viewer, \"3DMOLJS\", \"$json[url]\", $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\");
+                $html .= "<script>
+                          pcaVizToggleVisibility(\"".$uniqid."\");
+                          makePCAViz(\"".$uniqid."\", \"3DMOLJS\", \"$json[url]\", $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\");
                       </script>";
                 $file_found = TRUE;
+                $medialibrarycaption = $json["caption"];
                 break;
             }
         }
         if (!$file_found) {
             // File not found.
-            echo "<span style='color:red;'><b>Error! No trajectory file "
-                 ."(*.compressed.json) in the media library has a file name, "
-                 ."url, or title that contains the string \""
-                 .$file_to_test."\".</b></span>";
+            $html .= "<span style='color:red;'><b>Error! No trajectory file "
+                  ."(*.compressed.json) in the media library has a file name, "
+                  ."url, or title that contains the string \""
+                  .$file_to_test."\".</b></span>";
         }
     }
+
+    // If it's medialibrarycaption, use that caption.
+    if ($atts["medialibrarycaption"] == "true") {
+        $atts['caption'] = $medialibrarycaption;
+    }
+
+    // Add a caption if it's set.
+    if(!is_null($atts['caption'])) {
+        // Caption must not have quote
+        $atts['caption'] = str_replace('"', '', $atts['caption']);
+
+        echo "<figcaption class='pcaviz-figcaption' id='pcaviz-figcaption-".$uniqid."'>$atts[caption]</figcaption>";
+    }
+
+    echo "</div>";  // #pcaviz-collapsable
+
+    // Load the PCAViz javascript code.
+    echo $html;
 
     echo "</div>";  // .pcaviz-container
 
@@ -404,6 +432,11 @@ function pcaviz_options_page() { ?>
                 <li>To align the viewer to the left, center, or right, and to optionally add a caption:
                     <br>
                     <code>[pcaviz align="right" caption="My molecule in motion!"]</code></li>
+
+                <li>To instead use the caption associated with the <code>.compressed.json</code> file in your media library:
+                    <br>
+                    <code>[pcaviz mediaLibraryCaption="true"]</code>
+                    <br>(Note that this option is automatically set to true when no <code>file</code> attribute is specified.)</li>
 
                 <li>To hide the playback buttons:
                     <br>

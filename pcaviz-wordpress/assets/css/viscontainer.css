@@ -1,6 +1,6 @@
 /* The below position the viewer div and pcaviz-controls div relative to each other.*/
 
-#pcaviz-vis-and-controls {
+.pcaviz-vis-and-controls {
     width: 100%;
     height: 400px;
     position: relative;
@@ -10,19 +10,23 @@
     margin-bottom: 10px;
 }
 
-#pcaviz-viscontainer {
+.pcaviz-viscontainer {
     width: 100%;
     height: 100%;
 }
 
-#pcaviz-controls {
+.pcaviz-controls {
     min-height: 40px;
     height: 40px;
 }
 
 /** Need below to keep the button from being too tall. **/
-.pcaviz-pcaviz-controls-container {
+.pcaviz-controls-container {
     height: 40px;
+}
+
+.pcaviz-figcaption {
+    display: inline-block;
 }
 
 /* You can also stylize the control buttons. */

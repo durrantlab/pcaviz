@@ -311,20 +311,25 @@ WordPress post or page.
 2. To align the viewer to the left, center, or right, and to optionally add a
    caption: <br>
    `[pcaviz align="right" caption="My molecule in motion!"]`
-3. To hide the playback buttons: <br>
+3. To instead use the caption associated with the `.compressed.json` file in
+   your media library: <br>
+   `[pcaviz mediaLibraryCaption="true"]` <br>
+   (Note that this option is automatically set to true when no `file`
+   attribute is specified.)
+4. To hide the playback buttons: <br>
    `[pcaviz playback_buttons="false"]`
-4. To prevent the plugin from looping the animation: <br>
+5. To prevent the plugin from looping the animation: <br>
    `[pcaviz loop="false"]`
-5. The plugin starts playing the simulation automatically by default. To
+6. The plugin starts playing the simulation automatically by default. To
    deactivate autoplay: <br>
    `[pcaviz autoplay="false"]`
-6. To specify the duration of the animation and how frequently the atomic
+7. To specify the duration of the animation and how frequently the atomic
    positions are updated: <br>
    `[pcaviz durationInMilliseconds=10000 updateFreqInMilliseconds=50]`
-7. To smooth the animation by averaging the atomic coordinates over multiple
+8. To smooth the animation by averaging the atomic coordinates over multiple
    frames: <br>
    `[pcaviz windowAverageSize=25]`
-8. To control how the plugin caches calculated coordinates: <br>
+9. To control how the plugin caches calculated coordinates: <br>
    `[pcaviz caching="continuous"]` <br>
    Acceptable values are "none" (no caching), "continuous" (cache each frame's
    coordinates after they are first calculated), and "pre" (calculate and
