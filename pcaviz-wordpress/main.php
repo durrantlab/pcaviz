@@ -388,12 +388,14 @@ function pcaviz_options_page() { ?>
             <?php settings_fields( 'pcaviz_options_group' ); ?>
             <h3>Please allow us to collect limited data on PCAViz usage.</h3>
             <p>
-                As an academic group, our research depends on government grants.
-                Being able to cite usage statistics in reports and articles will
-                help us convince reviewers that our work is worth funding. <b>We
-                understand and respect your privacy and that of your
-                visitors.</b> Your personal data will never be made public. We
-                will only use summarized, aggregate data in our reports.
+                As an academic group, the <a href="http://durrantlab.com"
+                target="_blank">Durrant Lab</a>'s research depends on
+                government grants. Being able to cite usage statistics in
+                reports and articles will help us convince reviewers that our
+                work is worth funding. <b>We understand and respect your
+                privacy and that of your visitors.</b> Your personal data will
+                never be made public. We will only use summarized, aggregate
+                data in our reports.
             </p>
             <p>
                 Thank you! This helps us a lot!

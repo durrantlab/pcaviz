@@ -26,7 +26,7 @@ var PCAVizNameSpace;
             this._params = {};
             this._res_info = undefined;
             this._cachedFrameCoors = {};
-            this.analyticsAlreadyCalled = false;
+            this.analyticsAlreadyCalled = false; // To make sure called only once.
             this["io"] = new _IO(this); // This way so it survives closure compiler.
             this.updateParams(params);
             // Note that viewer provides a common interface for several
@@ -259,6 +259,10 @@ var PCAVizNameSpace;
                 }
             }
         };
+        /**
+         * Record analytics if user allows.
+         * @returns void
+         */
         PCAViz.prototype.googleAnalytics = function () {
             if (!this.analyticsAlreadyCalled) {
                 this.analyticsAlreadyCalled = true;
