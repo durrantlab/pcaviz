@@ -38,7 +38,7 @@ your WordPress admin screen
 = How can I compress my MD trajectories to use with this plugin? =
 
 Download the [PCAViz
-Compressor](http://git.durrantlab.com/jdurrant/browser-sim) to compress your
+Compressor](http://git.durrantlab.com/jdurrant/pcaviz) to compress your
 trajectories.
 
 == Screenshots ==
