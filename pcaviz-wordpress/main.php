@@ -317,9 +317,19 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
                     (strpos(strtolower($json["title"]), preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_to_test)) !== false)
                 )
                 {
+                // Keep trying to show the visibility. Doing it this way
+                // because theme might change where javascript files are
+                // loaded (footer).
                 $html .= "<script>
-                          pcaVizToggleVisibility(\"".$uniqid."\");
-                          makePCAViz(\"".$uniqid."\", \"3DMOLJS\", \"$json[url]\", $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\", $use_analytics);
+                          let pcaVizFileSpecSetup = () => {
+                              if (pcaVizToggleVisibility !== undefined) {
+                                  pcaVizToggleVisibility(\"".$uniqid."\");
+                                  makePCAViz(\"".$uniqid."\", \"3DMOLJS\", \"$json[url]\", $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\", $use_analytics);
+                              } else {
+                                  setTimeout(pcaVizFileSpecSetup, 100);
+                              }
+                          };
+                          setTimeout(pcaVizFileSpecSetup, 100);
                       </script>";
                 $file_found = TRUE;
                 $medialibrarycaption = $json["caption"];
