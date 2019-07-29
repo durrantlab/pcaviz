@@ -332,7 +332,12 @@ namespace PCAVizNameSpace {
             }
         }
 
-        private analyticsAlreadyCalled = false;
+        private analyticsAlreadyCalled = false;  // To make sure called only once.
+
+        /**
+         * Record analytics if user allows.
+         * @returns void
+         */
         private googleAnalytics(): void {
             if (!this.analyticsAlreadyCalled) {
                 this.analyticsAlreadyCalled = true;
