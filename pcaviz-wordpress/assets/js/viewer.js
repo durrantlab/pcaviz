@@ -1,5 +1,5 @@
 // Run sims in the browsers
-function makePCAViz(uniqId, viewerType, datafile, loop, autoplay, visStyle, durationInMilliseconds, updateFreqInMilliseconds, windowAverageSize, caching) {
+function makePCAViz(uniqId, viewerType, datafile, loop, autoplay, visStyle, durationInMilliseconds, updateFreqInMilliseconds, windowAverageSize, caching, analytics) {
     // debugger;
     let element = jQuery('#pcaviz-viscontainer-' + uniqId);
     let config = {
@@ -11,8 +11,6 @@ function makePCAViz(uniqId, viewerType, datafile, loop, autoplay, visStyle, dura
     visStyle = visStyle.replace(/!QUOTE!/g, '"');
     visStyle = JSON.parse(visStyle);
 
-    // debugger;
-
     element.show();
     let pcaViz = new PCAViz({
         viewer: viewer,
@@ -23,7 +21,8 @@ function makePCAViz(uniqId, viewerType, datafile, loop, autoplay, visStyle, dura
         loop: loop,
         playerControlsID: document.getElementById('pcaviz-controls-' + uniqId) ? 'pcaviz-controls-' + uniqId : element,
         windowAverageSize: windowAverageSize,
-        caching: caching
+        caching: caching,
+        analytics: analytics
     });
 
     pcaViz.io.loadJSON(datafile, () => {

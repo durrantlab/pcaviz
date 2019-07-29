@@ -26,6 +26,7 @@ var PCAVizNameSpace;
             this._params = {};
             this._res_info = undefined;
             this._cachedFrameCoors = {};
+            this.analyticsAlreadyCalled = false;
             this["io"] = new _IO(this); // This way so it survives closure compiler.
             this.updateParams(params);
             // Note that viewer provides a common interface for several
@@ -68,6 +69,7 @@ var PCAVizNameSpace;
                 "windowAverageSize": 1,
                 "playerControlsID": "",
                 "parent": this,
+                "analytics": true,
                 "loadPDBTxt": function (pdbTxt, viewer, pcaViz) {
                     throw new Error(genericModeBut +
                         'a loadPDBTxt(pdbTxt, viewer, pcaViz) function. This ' +
@@ -158,6 +160,10 @@ var PCAVizNameSpace;
             }
             // Pre-cache if necessary.
             this.cacheAllFrameCoorsIfNeeded();
+            // Inform google analytics as appropriate
+            if (this._params["analytics"]) {
+                this.googleAnalytics();
+            }
         };
         /**
          * Get the frame coordinates.
@@ -251,6 +257,27 @@ var PCAVizNameSpace;
                 for (var frameIdx = 0; frameIdx < this._numFramesTotal; frameIdx++) {
                     this.getFrameCoors(frameIdx);
                 }
+            }
+        };
+        PCAViz.prototype.googleAnalytics = function () {
+            if (!this.analyticsAlreadyCalled) {
+                this.analyticsAlreadyCalled = true;
+                (function (i, s, o, g, r, a, m) {
+                    i['GoogleAnalyticsObject'] = r;
+                    i[r] = i[r] || function () {
+                        (i[r].q = i[r].q || []).push(arguments);
+                    }, i[r].l = 1 * new Date().getTime();
+                    a = s.createElement(o),
+                        m = s.getElementsByTagName(o)[0];
+                    a.async = 1;
+                    a.src = g;
+                    m.parentNode.insertBefore(a, m);
+                })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+                ga('create', 'UA-144382730-1', {
+                    'name': 'pcaviz'
+                });
+                // UA-144382730-1 reports to pcaviz
+                ga('pcaviz.send', 'pageview');
             }
         };
         return PCAViz;

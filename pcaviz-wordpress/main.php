@@ -134,9 +134,6 @@ wp_enqueue_script('PCAViz-support');
 
 wp_enqueue_script('jquery');
 
-wp_register_script('GoogleAnalytics', plugin_dir_url( __FILE__ ) . 'assets/js/googleanalytics.js');
-wp_enqueue_script('GoogleAnalytics');
-
 /**
  * The main function for displaying PCAViz in the browser.
  *
@@ -229,7 +226,9 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
 
     // If the user agreed to let us collect statistics...
     if(get_option('pcaviz_option_name') === 'checked'){
-        echo "<script>ga('pcaviz.send', 'pageview');</script>";
+        $use_analytics = "true";
+    } else {
+        $use_analytics = "false";
     }
 
     // Add the required CSS styles.
@@ -297,7 +296,7 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     $html = "";
     $medialibrarycaption = "";
     if (is_null($atts['file'])) {
-        $html .= "<select style='width:$atts[width]px' id='pca-file-input-".$uniqid."' onchange='pcaVizToggleVisibility(\"".$uniqid."\");pcaVizSetCaption(\"".$uniqid."\");makePCAViz(\"".$uniqid."\", \"3DMOLJS\", this.options[this.selectedIndex].value, $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\")'>
+        $html .= "<select style='width:$atts[width]px' id='pca-file-input-".$uniqid."' onchange='pcaVizToggleVisibility(\"".$uniqid."\");pcaVizSetCaption(\"".$uniqid."\");makePCAViz(\"".$uniqid."\", \"3DMOLJS\", this.options[this.selectedIndex].value, $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\", $use_analytics)'>
                   <option selected>Select file</option>";
         foreach ($jsons as $json){
             $html .= "<option data-caption='$json[caption]' value=$json[url]>$json[title] | $json[date_time]</option>";
@@ -320,7 +319,7 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
                 {
                 $html .= "<script>
                           pcaVizToggleVisibility(\"".$uniqid."\");
-                          makePCAViz(\"".$uniqid."\", \"3DMOLJS\", \"$json[url]\", $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\");
+                          makePCAViz(\"".$uniqid."\", \"3DMOLJS\", \"$json[url]\", $atts[loop], $atts[autoplay], \"$atts[visstyle]\", $atts[durationinmilliseconds], $atts[updatefreqinmilliseconds], $atts[windowaveragesize], \"$atts[caching]\", $use_analytics);
                       </script>";
                 $file_found = TRUE;
                 $medialibrarycaption = $json["caption"];
@@ -393,8 +392,11 @@ function pcaviz_options_page() { ?>
                 <input type="checkbox" id="pcaviz_option_name" name="pcaviz_option_name" value="checked" <?php echo get_option('pcaviz_option_name'); ?>/>
                 Allow Analytics
             </p>
+            <p>
+                (If you are using a caching plugin, you may need to
+                clear your cache for any changes to take effect.)
+            </p>
             <?php  submit_button(); ?>
-
             <hr />
             <h3 id="examplesofuse">Examples of Use</h3>
 
@@ -484,7 +486,7 @@ add_action( 'admin_init', 'pcaviz_register_settings' );
  * @return void
  */
 function pcaviz_register_options_page() {
-  add_options_page('Page Title', 'PCAViz', 'manage_options', 'pcaviz', 'pcaviz_options_page');
+  add_options_page('PCAViz Settings', 'PCAViz', 'manage_options', 'pcaviz', 'pcaviz_options_page');
 }
 add_action('admin_menu', 'pcaviz_register_options_page');
 
