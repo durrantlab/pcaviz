@@ -1,6 +1,6 @@
 === PCAViz ===
 Contributors: durrantlab
-Donate link: http://durrantlab.com
+Donate link: http://durrantlab.com/pcaviz/
 Tags: PCAViz, molecular dynamics simulations
 Requires at least: 5.2.2
 Tested up to: 5.2.2
@@ -43,11 +43,7 @@ trajectories.
 
 == Screenshots ==
 
-1. This screen shot description corresponds to screenshot-1.(png|jpg|jpeg|gif). Note that the screenshot is taken from
-the /assets directory or the directory that contains the stable readme.txt (tags or trunk). Screenshots in the /assets
-directory take precedence. For example, `/assets/screenshot-1.png` would win over `/tags/4.3/screenshot-1.png`
-(or jpg, jpeg, gif).
-2. This is the second screen shot
+1. An example of the PCAViz WordPress plugin.
 
 == Changelog ==
 
