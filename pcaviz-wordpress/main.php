@@ -35,7 +35,7 @@ function pcaviz_plugin_activation() {
     update_option('pcaviz_plugin_deferred_admin_notices', $notices);
 
     // Copy default trajectories to the media library
-    $txt = pcaviz_add_default_files();
+    pcaviz_add_default_files();
 }
 register_activation_hook( __FILE__, 'pcaviz_plugin_activation' );
 
@@ -48,50 +48,89 @@ function pcaviz_add_default_files() {
     // See https://wordpress.stackexchange.com/questions/256830/programmatically-adding-images-to-media-library
 
     // Get info re. the upload directory.
-    $upload_dir = wp_upload_dir();
+    // $upload_dir = wp_upload_dir();
 
-    // ob_start();
+    // Need to require these files. See
+    // https://codex.wordpress.org/Function_Reference/media_handle_sideload
+	if ( !function_exists('media_handle_upload') ) {
+		require_once(ABSPATH."wp-admin".'/includes/image.php');
+		require_once(ABSPATH."wp-admin".'/includes/file.php');
+		require_once(ABSPATH."wp-admin".'/includes/media.php');
+    }
+
+    // Get plugin sim url.
+    $sim_url = plugins_url('assets/sims/', __FILE__);
+
+    // Get a list of all these previously uploaded json files, so you don't
+    // reuploaded.
+    $uploaded_jsons = pcaviz_get_all_json_files();
+    $uploaded_json_filenames = Array();
+    foreach ($uploaded_jsons as $uploaded_json) {
+        $uploaded_json_filenames[] = basename($uploaded_json["url"]);
+    }
+
+    // ob_start();  // For debugging
 
     // Get the source file in the assets directory.
     $all_flnms = plugin_dir_path(__FILE__).'assets/sims/*.compressed.json';
     foreach(glob($all_flnms) as $src_flnm) {
-        // Get the contents of that file.
-        $data = file_get_contents($src_flnm);
+        // Basename
+        $bsnm = basename($src_flnm);
 
-        // And the base filename.
-        $filename = basename($src_flnm);
-
-        // Make the pcaviz directory in uploads if necessary.
-        $example_json_outdir = $upload_dir['basedir'].'/pca-sample-trajs';
-        wp_mkdir_p($example_json_outdir);
-
-        // Pick the file.
-        $file = $example_json_outdir.'/'.$filename;
-
-        // If the file already exists, skip copying it.
-        if (!file_exists($file)) {
-            // Save the file to that location.
-            file_put_contents($file, $data);
-
-            // Get information about the file
-            $sim_inf = file($src_flnm.'.inf');
-
-            $wp_filetype = wp_check_filetype($filename, null);
-
-            // Save the attachment to the media library.
-            $attachment = array(
-                'post_mime_type' => $wp_filetype['type'],
-                'post_title' => $sim_inf[0],
-                'post_content' => '',
-                'post_status' => 'inherit',
-                'post_excerpt' => $sim_inf[1]
-            );
-
-            $attach_id = wp_insert_attachment($attachment, $file);
+        if (in_array($bsnm, $uploaded_json_filenames)) {
+            // Already uploaded;
+            continue;
         }
+
+        // Get the URL of the file.
+        $url = $sim_url.$bsnm;
+
+        // Download it to a temporary file.
+        $tmp = download_url($url);
+
+        $file_array = array(
+            'name' => basename($url),
+            'tmp_name' => $tmp,
+            'type' => 'text/plain'
+        );
+
+        // If there are download errors, unlink the file.
+        if (is_wp_error($tmp)) {
+            @unlink($file_array['tmp_name']);
+            return $tmp;
+        }
+
+        // Now get title and description.
+        $sim_inf = file($src_flnm.'.inf');
+        $title = $sim_inf[0];
+        $caption = $sim_inf[1];
+
+        // Collect all the data about the simulation.
+        $attachment = array(
+            'post_mime_type' => 'text/plain',
+            'post_title' => $title,
+            'post_content' => '',
+            'post_status' => 'inherit',
+            'post_excerpt' => $caption
+        );
+
+        // "Upload" the file, without atttaching it to any post.
+        $post_id = '0';
+        $id = media_handle_sideload($file_array, $post_id, $title, $attachment);
+
+        // Delete the temporary file if there were errors moving it into the
+        // media library.
+        if (is_wp_error($id)) {
+            @unlink($file_array['tmp_name']);
+            return $id;
+        }
+
+        // You can get the url of the attachment like this, in case you ever
+        // need it...
+        // $value = wp_get_attachment_url($id);
     }
 
-    // return ob_get_clean();
+    // return ob_get_clean();  // For debugging
 }
 
 /**
@@ -263,33 +302,7 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     echo "</div>";  // #pcaviz-controls
     echo "</div>";  // #pcaviz-vis-and-controls
 
-    // Get a list of all the JSON files that have been uploaded to the media
-    // library. Put that list in a variable called $jsons.
-    $query_json_args = array(
-        'post_type'      => 'attachment',
-        'post_mime_type' => 'text/plain',
-        'post_status'    => 'inherit',
-        'posts_per_page' => - 1,
-    );
-    $query_jsons = new WP_Query( $query_json_args  );
-    $jsons = array();
-    foreach ($query_jsons->posts as $json) {
-        $url = wp_get_attachment_url($json->ID);
-        if (substr($url, -strlen(".compressed.json")) === ".compressed.json") {
-            // Filename ends with ".compressed.json"
-
-            // Caption must not have quote
-            $caption = str_replace('"', '', $json->post_excerpt);
-
-            $jsons[] = array(
-                "url" => $url,
-                "file_name" => $json->post_name,
-                "date_time" => $json->post_date,
-                "title" => $json->post_title,
-                "caption" => $caption
-            );
-        }
-    }
+    $jsons = pcaviz_get_all_json_files();
 
     // If the user didn't include a 'file' attribute in the shortcode, display
     // a dropdown listing all JSON files from the media library.
@@ -369,6 +382,51 @@ function pcaviz_main($atts = [], $content = null, $tag = '') {
     return ob_get_clean();
 }
 
+/**
+ * Gets information about the uploaded .compressed.json files.
+ *
+ * @return array The information about the .compressed.json files.
+ */
+function pcaviz_get_all_json_files() {
+    // Get a list of all the JSON files that have been uploaded to the media
+    // library. Put that list in a variable called $jsons.
+    $query_json_args = array(
+        'post_type'      => 'attachment',
+        'post_mime_type' => 'text/plain',
+        'post_status'    => 'inherit',
+        'posts_per_page' => - 1,
+    );
+    $query_jsons = new WP_Query( $query_json_args  );
+    $jsons = array();
+    foreach ($query_jsons->posts as $json) {
+        $url = wp_get_attachment_url($json->ID);
+        if (substr($url, -strlen(".compressed.json")) === ".compressed.json") {
+            // Filename ends with ".compressed.json"
+
+            // Caption must not have quote
+            $caption = str_replace('"', '', $json->post_excerpt);
+
+            $jsons[] = array(
+                "url" => $url,
+                "file_name" => $json->post_name,
+                "date_time" => $json->post_date,
+                "title" => $json->post_title,
+                "caption" => $caption
+            );
+        }
+    }
+
+    return $jsons;
+}
+
+
+/**
+ * Replaces ' with ". Then replaces " with !QUOTE!. viewer.js will replace
+ * !QUOTE! with " to restore the quote.
+ *
+ * @param $str $str
+ * @return string The string with the quotes protected.
+ */
 function pcaviz_protect_quotes($str) {
     $str = str_replace("'", '"', $str);
     $str = str_replace('"', '!QUOTE!', $str);
