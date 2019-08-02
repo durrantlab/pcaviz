@@ -17,7 +17,7 @@ PCAViz is a tool for displaying molecular dynamics simulations in the browser. T
 
 == Installation ==
 
-You can install the PCAViz WordPress plugin via the official WordPress Plugin Directory. Search for __XXXXX__. The [wordpress.org](https://wordpress.org/support/article/managing-plugins/#automatic-plugin-installation) site provides useful instructions detailing how to install plugins from their directory.
+You can install the PCAViz WordPress plugin via the official WordPress Plugin Directory. Search for __PCAViz__. The [wordpress.org](https://wordpress.org/support/article/managing-plugins/#automatic-plugin-installation) site provides useful instructions detailing how to install plugins from their directory.
 
 You can also install the plugin using this repository's `pcaviz-wordpress/` directory. Either copy `pcaviz-wordpress/` directly to your server's `wp-content/plugins/` directory ([instructions](https://wordpress.org/support/article/managing-plugins/#manual-plugin-installation)), or create a ZIP file of the `pcaviz-wordpress/` directory and upload it via your WordPress admin screen ([instructions](https://wordpress.org/support/article/managing-plugins/#manual-upload-via-wordpress-admin)).
 
