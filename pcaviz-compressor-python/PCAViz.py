@@ -72,10 +72,13 @@ class Utils:
         # Read in coordinate file and topology file as a universe.
         if coor_file is not None:
             traj = MDAnalysis.Universe(top_file, coor_file)
-            traj.trajectory[0::100]
+            # Not sure why 100, but it doesn't change number of frames.
+            # traj.trajectory[0::100]
+            traj.trajectory[:]
         else:
             traj = MDAnalysis.Universe(top_file)
-            traj.trajectory[0::100]
+            # traj.trajectory[0::100]
+            traj.trajectory[:]
 
         return traj
 
