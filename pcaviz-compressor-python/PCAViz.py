@@ -17,7 +17,7 @@ class Utils:
     """A class (namespace) that contains utiliity definitions."""
 
     @staticmethod
-    def output_filename(description, ext, coor_file, output_dir=None):
+    def get_output_filename(description, ext, coor_file, output_dir=None):
         """This definition generates an output filename of type ext.
 
         :param description: A decription of the file.
@@ -164,26 +164,28 @@ class PCAFuncs:
             coor_data.append(frame.positions[idx_of_selected_atoms].ravel())
         coor_data = np.array(coor_data)
 
-        # Append coordinates to python list then use ravel to flatten coordinates without
-        # having to allocate new memory
-        # Turning coord list into numpy array because it reduces memory consumption
-        # You get a flatten numpy array containing the coordinates
+        # Append coordinates to python list then use ravel to flatten
+        # coordinates without having to allocate new memory
+
+        # Turning coord list into numpy array because it reduces memory
+        # consumption You get a flatten numpy array containing the coordinates
         pca = PCA(n_components=min(coor_data.shape))
         pca.fit(coor_data)
         pca_vectors = pca.components_
 
-        # Number of components should be equal to number of elements in coor_data array
-        # Number of principal components = 3xs the number of atoms
-        # pca.fit fits model to coordinate data
-        # PCA vectors contain principal axes in PCA space, show max variance in data
+        # Number of components should be equal to number of elements in
+        # coor_data array. Number of principal components = 3xs the number of
+        # atoms. pca.fit fits model to coordinate data. PCA vectors contain
+        # principal axes in PCA space, show max variance in data.
 
         # Also get the coefficients for each frame.
         coords_project_onto_pca_space = pca.transform(coor_data)
 
-        # coords_project_onto_pca_space applies PCA dimensionality reduction to coor_data
+        # coords_project_onto_pca_space applies PCA dimensionality reduction
+        # to coor_data
 
-        # Calculate how many components are required to cumulatively explain the
-        # desired variance.
+        # Calculate how many components are required to cumulatively explain
+        # the desired variance.
         var = pca.explained_variance_ratio_
         cumulated_variance = np.array([np.sum(var[:i+1]) for i in range(var.size)])
         idxs_of_above_cum_var = np.where(cumulated_variance >= cum_var)[0]
@@ -212,6 +214,7 @@ class PCAFuncs:
 
         # Only select atoms of interest.
         atomgroup = traj.select_atoms(selection)
+
         # data_json will contain residue/atom info for user selection
         data_json = []
 
@@ -222,9 +225,9 @@ class PCAFuncs:
             res_name = a.resname
             res_id = a.resid
 
-            # If statement will check to see if residue id is present if it's not
-            # present it will add the residue id, residue name, and the residue's
-            # atoms.
+            # If statement will check to see if residue id is present if it's
+            # not present it will add the residue id, residue name, and the
+            # residue's atoms.
             key = str(res_id) + res_name # Because list is not hashable.
             if key != last_key:
                 data_json.append([int(res_id), res_name, at_name])
@@ -435,10 +438,10 @@ class Tests:
         expanded_trajectory = PCAFuncs.expand_PCA(vect_components, PCA_coeff,
                                                   coords_avg_atoms, precision)
 
-        xyz_filename = Utils.output_filename('uncompressed',
-                                                'xyz',
-                                                coor_file=coor_file,
-                                                output_dir=params['output_dir'])
+        xyz_filename = Utils.get_output_filename('uncompressed',
+                                                 'xyz',
+                                                 coor_file=coor_file,
+                                                 output_dir=params['output_dir'])
         PCAFuncs.save_uncompressed_pdb(expanded_trajectory, data_json_info, xyz_filename)
 
         # Calculate RMSD value of each frame between original and expanded trajectory.
@@ -455,19 +458,52 @@ class Tests:
         mean_RMSD = np.mean(RMSD_lst)
         std_RMSD = np.std(RMSD_lst)
         RMSD_lst.extend([mean_RMSD, std_RMSD])
-        print("The mean RMSD between the original and expanded trajectory is: " + \
+        print("Mean RMSD between original and expanded trajectories: " + \
                 str(mean_RMSD))
-        print("The standard deviation of the RMSD between the original and " + \
-                "expanded trajectory is: " + str(std_RMSD))
+        print("Standard deviation of RMSD between original and " + \
+                "expanded trajectories: " + str(std_RMSD))
+
+
+        print("Number top components required to account for >= " + \
+              str(100 * params["cum_var"]) + "% of " + \
+              "variance: " + str(len(vect_components)))
 
         # Save a table containing results.
-        tbl_flnm = Utils.output_filename('starting_vs_expanded_RMSD',
+        tbl_flnm = Utils.get_output_filename('starting_vs_expanded_RMSD',
                                     'csv',
                                     coor_file=coor_file,
                                     output_dir=params['output_dir'])
         with open(tbl_flnm, 'w') as tf:
             table_writer = csv.writer(tf)
             table_writer.writerows(zip(frame_numbers, RMSD_lst))
+
+        # Report file size too
+        json_file = tbl_flnm.replace("starting_vs_expanded_RMSD.csv", "compressed.json")
+        import os
+        print("Size of output JSON file: " + \
+            str(
+                np.round(
+                    os.stat(json_file).st_size / 1024.0,  # Using this instead of 1000... definition is ambiguous
+                    3
+                )
+            ) + "K"
+        )
+
+        # Temporarily compress the file to report that size as well.
+        import gzip
+        import shutil
+        with open(json_file, 'rb') as f_in:
+            with gzip.open(json_file + ".tmp.gz", 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        print("Approximate size if gz compressed: " + \
+            str(
+                np.round(
+                    os.stat(json_file + ".tmp.gz").st_size / 1024.0,  # Using this instead of 1000... definition is ambiguous
+                    3
+                )
+            ) + "K"
+        )
+        os.remove(json_file + ".tmp.gz")
 
 
 def get_params():
@@ -670,11 +706,6 @@ def main():
                                               precision,
                                               flatten=True)
 
-    # If the user request to check the accuracy of the expanded trajectory.
-    if params['check_accuracy']:
-        Tests.check_accuracy(params, vect_components, PCA_coeff, coords_avg_atoms,
-                             precision, coor_file, data_json_info, traj)
-
     # dictionary to be outputted as a json.
     my_dict = {}
     my_dict['vecs'] = vect_components
@@ -691,7 +722,7 @@ def main():
     json_txt = json_txt.replace(' ', '')
 
     # Obtain output file name.
-    output_name = Utils.output_filename('compressed',
+    output_name = Utils.get_output_filename('compressed',
                                          'json',
                                          coor_file=coor_file,
                                          output_dir=params['output_dir'])
@@ -699,6 +730,11 @@ def main():
     # Write the file.
     with open(output_name, 'w') as write_file:
         write_file.write(json_txt)
+
+    # If the user request to check the accuracy of the expanded trajectory.
+    if params['check_accuracy']:
+        Tests.check_accuracy(params, vect_components, PCA_coeff, coords_avg_atoms,
+                             precision, coor_file, data_json_info, traj)
 
     # If it's running in test mode, finish the test
     if params["test"]:

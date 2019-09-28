@@ -7,3 +7,6 @@ test_files/*compressed.json*
 old*
 compress_decompress_test
 *.tmp.sh
+pcaviz-compressor-python/examples/1J8K_example*compress*
+pcaviz-compressor-python/examples/1J8K_example*expand*
+pcaviz-compressor-python/test*
