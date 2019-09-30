@@ -14,7 +14,7 @@ from MDAnalysis.coordinates.memory import MemoryReader
 import numpy as np
 from sklearn.decomposition import PCA
 
-__version__ = "1.1"
+__version__ = "1.2"
 FROM_PIP = False
 
 class Utils:

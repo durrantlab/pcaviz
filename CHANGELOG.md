@@ -2,6 +2,10 @@
 
 ## PCAViz Compressor (Python) ##
 
+### 1.2 ###
+
+* `pip` installation now installs all dependencies as well.
+
 ### 1.1 ###
 
 * Added `CHANGELOG.md`
