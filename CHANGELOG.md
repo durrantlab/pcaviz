@@ -11,6 +11,7 @@
   1) number of components retained to achieve the target cumulative variance
   2) size of output JSON file
   3) approximate size of output JSON file if it were compressed with gzip
+
 * Created separate ZIP files for the JavaScript Interpreter, Python
   Compressor, and WordPress plugin so users don't have to download the whole
   repository
