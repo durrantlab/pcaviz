@@ -16,6 +16,20 @@ principal component analysis and other strategies) to process trajectories.
 The compressor saves this data as a minified JSON file that can itself be
 further compressed using algorithms such as GZIP.
 
+### Download ###
+
+The [Git repository](http://git.durrantlab.com/jdurrant/pcaviz):
+`pcaviz-compressor-python/`
+
+If you would like to download the compressor without downloading (or cloning)
+the entire repository, click on `pcaviz-compressor-python.zip`.
+
+You can also install the PCAViz Compressor via `pip`:
+
+```bash
+pip install pcaviz-durrantlab
+```
+
 ### Available User Parameters ###
 
 ```text
@@ -45,6 +59,9 @@ further compressed using algorithms such as GZIP.
 ```
 
 ### Examples of Use ###
+
+(Note: if you install the PCAViz Compressor via `pip`, use the global `pcaviz`
+command in place of `python PCAViz.py` below.)
 
 1. Create a compressed JSON file from a topology (1J8K_example.psf) and a
    trajectory/coordinate (1J8K_example.dcd) file. <br>

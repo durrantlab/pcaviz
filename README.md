@@ -20,6 +20,12 @@ This Git repository: `pcaviz-compressor-python/`
 If you would like to download the compressor without downloading (or cloning)
 the entire repository, click on `pcaviz-compressor-python.zip`.
 
+You can also install the PCAViz Compressor via `pip`:
+
+```bash
+pip install pcaviz-durrantlab
+```
+
 ### Available User Parameters ###
 
 ```text
@@ -49,6 +55,9 @@ the entire repository, click on `pcaviz-compressor-python.zip`.
 ```
 
 ### Examples of Use ###
+
+(Note: if you install the PCAViz Compressor via `pip`, use the global `pcaviz`
+command in place of `python PCAViz.py` below.)
 
 1. Create a compressed JSON file from a topology (1J8K_example.psf) and a
    trajectory/coordinate (1J8K_example.dcd) file. <br>

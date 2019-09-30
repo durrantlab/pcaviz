@@ -15,6 +15,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 
 __version__ = "1.1"
+FROM_PIP = False
 
 class Utils:
     """A class (namespace) that contains utiliity definitions."""
@@ -524,8 +525,13 @@ def get_params():
     :rtype:  dict
 
     ::
-        >>> python PCA.py -h
+        >>> python PCAViz.py -h
     """
+
+    if FROM_PIP:
+        exec_str = "pcaviz"
+    else:
+        exec_str = "python PCAViz.py"
 
     # If no parameters given, show the help file.
     if len(sys.argv) == 1:
@@ -554,25 +560,25 @@ EXAMPLES OF USE:
 1. Create a compressed JSON file from a topology (1J8K_example.psf) and a
    trajectory/coordinate (1J8K_example.dcd) file.
 
-python PCAViz.py --top_file examples/1J8K_example.psf --coor_file examples/1J8K_example.dcd
+""" + exec_str + """ --top_file examples/1J8K_example.psf --coor_file examples/1J8K_example.dcd
 
 2. PDB files can also contain multiple frames. In this case, the same file
    serves as the topology and trajectory file.
 
-python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb
+""" + exec_str + """ --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb
 
 3. By default, PCAViz includes only the backbone atoms in the output. These
    atoms should be enough for cartoon-style visualization. But you can select
    your own atoms to include in the output. See https://goo.gl/kVeQuN to learn
    how to construct an atom-selection string.
 
-python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --selection "name *"
+""" + exec_str + """ --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --selection "name *"
 
 4. Striding the trajectory frames can reduce file sizes. PCAViz will
    interpolate between the remaining frames to fill in the frames that are
    missing. Here we keep only every other frame:
 
-python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --stride 2
+""" + exec_str + """ --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --stride 2
 
 5. PCAViz allows users to control the compression settings. Two settings are
    available. First, the user can specify how much of the cumulative variance
@@ -584,7 +590,7 @@ python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_
    numbers in the output JSON file to the nearest hundredth (two decimal
    places):
 
-python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --cum_var 0.8 --precision 2
+""" + exec_str + """ --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --cum_var 0.8 --precision 2
 
 6. To find the ideal --cum_var and --precision parameters, you may wish to
    check how closely the PCAViz-compressed trajectory matches the original
@@ -593,18 +599,18 @@ python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_
    also outputs an XYZ trajectory file that you can visually compare to the
    original.
 
-python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --check_accuracy
+""" + exec_str + """ --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --check_accuracy
 
 7. By default, PCAViz saves the compressed JSON file to the same directory
    where the coordinate file is located. You can specify a different output
    directory if needed. The directory will be created if it doesn't exist.
 
-python PCAViz.py --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --output_dir "my_dir"
+""" + exec_str + """ --top_file examples/1J8K_example.pdb --coor_file examples/1J8K_example.pdb --output_dir "my_dir"
 
 8. For debugging purposes, PCAViz also includes an option to test whether the
    code is fully functional.
 
-python PCAViz.py --test
+""" + exec_str + """ --test
 
 """)
 

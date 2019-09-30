@@ -14,6 +14,7 @@
 * Created separate ZIP files for the JavaScript Interpreter, Python
   Compressor, and WordPress plugin so users don't have to download the whole
   repository
+* The PCAViz Python Compressor can now be installed using `pip`.
 * Improved build process (primarily for Durrant-Lab use)
 
 ### 1.0 ###

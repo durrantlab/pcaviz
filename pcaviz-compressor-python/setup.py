@@ -8,7 +8,7 @@ with open("PCAViz/README.md", "r") as fh:
 
 setuptools.setup(
     name="pcaviz-durrantlab",
-    version="1.7",
+    version="1.13",
     author="Jacob Durrant",
     author_email="durrantj@pitt.edu",
     description="A script to compress molecular dynamics simulations so they can be visualized with PCAViz in a web browser.",
