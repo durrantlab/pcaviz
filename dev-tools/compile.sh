@@ -13,9 +13,9 @@ tsc --target ES5 PCAViz.ts
 echo "    Compile JavaScript with closure compiler."
 # export formatting="--formatting=PRETTY_PRINT"
 export formatting=""
-java -jar ../dev_tools/utils/closure-compiler-v20180506.jar $formatting \
+java -jar ../dev-tools/utils/closure-compiler-v20180506.jar $formatting \
    --compilation_level=ADVANCED_OPTIMIZATIONS \
-   --externs='../dev_tools/utils/custom_extern.js' --js_output_file='PCAViz.min.js' 'PCAViz.js' \
+   --externs='../dev-tools/utils/custom_extern.js' --js_output_file='PCAViz.min.js' 'PCAViz.js' \
    2> closure.errs.txt
 
 echo "    Display and delete closure errors."
@@ -23,7 +23,7 @@ cat closure.errs.txt
 rm closure.errs.txt
 
 echo "    Preserve PCAVizNameSpace global namespace."
-python ../dev_tools/utils/fix_namespaces.py
+python ../dev-tools/utils/fix_namespaces.py
 
 echo "    Copy js file to examples directory."
 cp PCAViz.min.js examples/
@@ -32,7 +32,7 @@ echo "    Make ZIP of JavaScript directory."
 cd ..
 rm pcaviz-interpreter-javascript.zip
 zip -r pcaviz-interpreter-javascript.zip pcaviz-interpreter-javascript/
-cd dev_tools
+cd dev-tools
 
 ############ Compile WordPress Plugin ############
 echo "Compiling WordPress Plugin."
@@ -46,7 +46,7 @@ echo "    Make ZIP file of wordpress directory."
 cd ../
 rm pcaviz-wordpress.zip
 zip -r pcaviz-wordpress.zip pcaviz-wordpress
-cd dev_tools
+cd dev-tools
 
 ############ Compile Pytthon Compressor ############
 echo "Compiling Python Compressor."

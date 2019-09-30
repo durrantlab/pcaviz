@@ -11,4 +11,4 @@ pcaviz-compressor-python/examples/1J8K_example*compress*
 pcaviz-compressor-python/examples/1J8K_example*expand*
 pcaviz-compressor-python/test*
 post_compile_durrantlab.sh
-dev_tools/utils/compiled*.js
+dev-tools/utils/compiled*.js

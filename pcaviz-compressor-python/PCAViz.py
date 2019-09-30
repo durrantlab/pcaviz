@@ -13,7 +13,8 @@ from MDAnalysis.analysis.base import AnalysisFromFunction
 from MDAnalysis.coordinates.memory import MemoryReader
 import numpy as np
 from sklearn.decomposition import PCA
-from .__init__ import __version__
+
+__version__ = "1.1"
 
 class Utils:
     """A class (namespace) that contains utiliity definitions."""
@@ -352,9 +353,10 @@ class Tests:
             print("Directory already exists: " + output_dir + "! Delete this directory before running the test.")
             sys.exit(0)
         os.mkdir(output_dir)
+        examples_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep + "examples" + os.sep
         params = {
-            "top_file": "examples/1J8K_example.pdb",
-            "coor_file": "examples/1J8K_example.pdb",
+            "top_file": examples_dir + "1J8K_example.pdb",
+            "coor_file": examples_dir + "1J8K_example.pdb",
             "selection": "name C N CA",
             "output_dir": output_dir,
             "stride": 2,
