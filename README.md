@@ -3,7 +3,8 @@
 ## Introduction ##
 
 PCAViz is an open-source Python/JavaScript toolkit for sharing and visualizing
-MD trajectories via a web browser.
+MD trajectories via a web browser. We release it under the terms of the
+open-source GNU General Public License, version 2 (see `LICENSE.md`).
 
 ## PCAViz Compressor (Python) ##
 
@@ -15,6 +16,9 @@ further compressed using algorithms such as GZIP.
 ### Location ###
 
 This Git repository: `pcaviz-compressor-python/`
+
+If you would like to download the compressor without downloading (or cloning)
+the entire repository, click on `pcaviz-compressor-python.zip`.
 
 ### Available User Parameters ###
 
@@ -104,6 +108,9 @@ libraries (e.g., 3DMol.js, NGL Viewer, PV).
 ### Location ###
 
 This Git repository: `pcaviz-interpreter-javascript/`
+
+If you would like to download the interpreter without downloading (or cloning)
+the entire repository, click on `pcaviz-interpreter-javascript.zip`.
 
 ### Examples of Use ###
 
@@ -261,10 +268,13 @@ examples showing how to use PCAViz in any webpage.
 
 This Git repository: `pcaviz-wordpress/`
 
+If you would like to download the WordPress plugin without downloading (or
+cloning) the entire repository, click on `pcaviz-wordpress.zip`.
+
 ### Installation ###
 
 You can install the PCAViz WordPress plugin via the official WordPress Plugin
-Directory. Search for __XXXXX__. The
+Directory. Search for pcaviz. The
 [wordpress.org](https://wordpress.org/support/article/managing-plugins/#automatic-plugin-installation)
 site provides useful instructions detailing how to install plugins from their
 directory.

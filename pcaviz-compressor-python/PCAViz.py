@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import json
 import csv
 import os
@@ -11,7 +13,7 @@ from MDAnalysis.analysis.base import AnalysisFromFunction
 from MDAnalysis.coordinates.memory import MemoryReader
 import numpy as np
 from sklearn.decomposition import PCA
-
+from .__init__ import __version__
 
 class Utils:
     """A class (namespace) that contains utiliity definitions."""
@@ -540,9 +542,10 @@ def get_params():
         PARSER = argparse.ArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="""
-PCAViz is an open-source Python/JavaScript toolkit for sharing and visualizing
-MD trajectories via a web browser. This Python script, called the PCAViz
-Compressor, compresses an MD trajectory and saves the output to a JSON file.""",
+PCAViz """ + __version__ + """ is an open-source Python/JavaScript toolkit for sharing and
+visualizing MD trajectories via a web browser. This Python script, called the
+PCAViz Compressor, compresses an MD trajectory and saves the output to a JSON
+file.""",
             epilog="""
 EXAMPLES OF USE:
 

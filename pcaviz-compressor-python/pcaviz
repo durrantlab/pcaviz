@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+
+# This python script is simply a wrapper for PCAViz.py so that when users
+# install via pip, they they can simply type "pcaviz" from the command line.
+# If you're not using pip, run something like "python PCAViz.py" instead.
+
+from pcaviz import PCAViz
+PCAViz.main()
