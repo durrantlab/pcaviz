@@ -13,3 +13,4 @@ pcaviz-compressor-python/test*
 dev-tools/utils/compiled*.js
 post_compile_durrantlab
 pcaviz-compressor-python/dist
+TODO.md
